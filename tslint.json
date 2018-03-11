@@ -1,0 +1,7 @@
+{
+  "rulesDirectory": ["./src/scripts"],
+  "rules": {
+    "semicolon": [true, "always"],
+    "type-literal-delimiter": true
+  }
+}

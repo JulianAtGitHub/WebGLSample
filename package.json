@@ -1,0 +1,29 @@
+{
+  "name": "sample",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./dist/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^16.1.0",
+    "gl-matrix": "^2.4.0",
+    "gulp": "^3.9.1",
+    "gulp-connect": "^5.5.0",
+    "gulp-typescript": "^4.0.1",
+    "jquery": "^3.3.1",
+    "lodash": "^4.17.5",
+    "tsify": "^3.0.4",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2",
+    "vinyl-source-stream": "^2.0.0"
+  },
+  "dependencies": {
+    "@types/gl-matrix": "^2.4.0",
+    "@types/jquery": "^3.3.0",
+    "@types/lodash": "^4.14.104"
+  }
+}

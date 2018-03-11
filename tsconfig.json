@@ -1,0 +1,13 @@
+{
+  "include": [
+    "src/scripts/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "target": "es5",
+    "sourceMap": true
+  }
+}

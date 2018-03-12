@@ -1,3 +1,4 @@
+#extension GL_OES_standard_derivatives : enable
 precision mediump float;
 
 varying vec3 vPosition;
@@ -5,10 +6,11 @@ varying vec3 vNormal;
 varying vec2 vTexCoord;
 
 // material
-uniform vec3 uAlbedo;
-uniform float uMetallic;
-uniform float uRoughness;
-uniform float uAO;
+uniform sampler2D uNormalMap;
+uniform sampler2D uAlbedoMap;
+uniform sampler2D uMetallicMap;
+uniform sampler2D uRoughnessMap;
+uniform sampler2D uAOMap;
 
 // light
 uniform vec3 uLightPos;
@@ -17,6 +19,23 @@ uniform vec3 uLightColor;
 uniform vec3 uViewPos;
 
 const float PI = 3.14159265359;
+
+// Easy trick to get tangent-normals to world-space to keep PBR code simplified.
+vec3 NormalFromTexture() {
+  vec3 tangentNormal = texture2D(uNormalMap, vTexCoord).xyz * 2.0 - 1.0;
+
+  vec3 Q1 = dFdx(vPosition);
+  vec3 Q2 = dFdy(vPosition);
+  vec2 st1 = dFdx(vTexCoord);
+  vec2 st2 = dFdy(vTexCoord);
+
+  vec3 N = normalize(vNormal);
+  vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+  vec3 B = -normalize(cross(N, T));
+  mat3 TBN = mat3(T, B, N);
+
+  return normalize(TBN * tangentNormal);
+}
 
 vec3 HDRToneMapping(vec3 color) {
   return color / (color + vec3(1.0));
@@ -38,7 +57,7 @@ float DistributionGGX(float NdotH, float roughness) {
   float denom = NdotH2 * (a2 - 1.0) + 1.0;
   denom = PI * denom * denom;
 
-  return nom / max(denom, 0.001);
+  return nom / denom;
 }
 
 // Smith's Schlick-GGX with k = (a + 1)2 / 8
@@ -65,7 +84,13 @@ vec3 FresnelSchlick(float cosTheta, vec3 f0) {
 }
 
 void main(void) {
-  vec3 N = normalize(vNormal);
+  vec3 albedo = pow(texture2D(uAlbedoMap, vTexCoord).rgb, vec3(2.2));
+  float metallic = texture2D(uMetallicMap, vTexCoord).r;
+  float roughness = texture2D(uRoughnessMap, vTexCoord).r;
+  float ao = texture2D(uAOMap, vTexCoord).r;
+
+  vec3 N = NormalFromTexture();
+  // vec3 N = normalize(vNormal);
   vec3 V = normalize(uViewPos - vPosition);
 
   vec3 L = normalize(uLightPos - vPosition);
@@ -86,16 +111,16 @@ void main(void) {
   // If dia-electric (like plastic) use F0 of 0.04
   // And if it's a metal, use the albedo color as F0 (metal workflow)
   vec3 f0 = vec3(0.4);
-  f0 = mix(f0, uAlbedo, uMetallic);
+  f0 = mix(f0, albedo, metallic);
 
   // BRDF of Cook-Torrance
-  float D = DistributionGGX(NdotH, uRoughness);
-  float G = GeometrySmith(NdotV, NdotL, uRoughness);
-  vec3 F = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), f0);
+  float D = DistributionGGX(NdotH, roughness);
+  float G = GeometrySmith(NdotV, NdotL, roughness);
+  vec3 F = FresnelSchlick(max(dot(H, V), 0.0), f0);
 
   vec3 nom = D * G * F;
-  float denom = 4.0 * NdotV * NdotL;
-  vec3 specular = nom / max(denom, 0.001);
+  float denom = 4.0 * NdotV * NdotL + 0.001;
+  vec3 specular = nom / denom;
 
   // kS is equal to Fresnel
   vec3 kS = F;
@@ -103,12 +128,12 @@ void main(void) {
   // To preserve this relationship the diffuse component (kD) should equal 1.0 - kS.
   vec3 kD = vec3(1.0) - kS;
   // Multiply kD by the inverse metalness such that only non-metals have diffuse lighting.
-  kD *= 1.0 - uMetallic;
+  kD *= 1.0 - metallic;
 
   // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-  vec3 Lo = (kD * uAlbedo / PI + specular) * radiance * NdotL;
+  vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
 
-  vec3 ambient = vec3(0.03) * uAlbedo * uAO;
+  vec3 ambient = vec3(0.03) * albedo * ao;
 
   vec3 color = ambient + Lo;
   

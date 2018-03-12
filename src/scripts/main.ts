@@ -58,14 +58,14 @@ function SetupPbrProgram(converter: Converter): ProgramInfo {
     program.uniforms.others = {
       viewPos: {location: gl.getUniformLocation(shaderProgram, "uViewPos"), type: DataType.Float3},
       lightPos: {location: gl.getUniformLocation(shaderProgram, "uLightPos"), type: DataType.Float3},
-      lightColor: {location: gl.getUniformLocation(shaderProgram, "uLightColor"), type: DataType.Float3},
-      albedo: {location: gl.getUniformLocation(shaderProgram, "uAlbedo"), type: DataType.Float3},
-      metallic: {location: gl.getUniformLocation(shaderProgram, "uMetallic"), type: DataType.Float},
-      roughness: {location: gl.getUniformLocation(shaderProgram, "uRoughness"), type: DataType.Float},
-      ao: {location: gl.getUniformLocation(shaderProgram, "uAO"), type: DataType.Float}
+      lightColor: {location: gl.getUniformLocation(shaderProgram, "uLightColor"), type: DataType.Float3}
     };
     program.uniforms.textures = {
-
+      normalMap: {location: gl.getUniformLocation(shaderProgram, 'uNormalMap'), index: 0},
+      albedoMap: {location: gl.getUniformLocation(shaderProgram, 'uAlbedoMap'), index: 1},
+      metallicMap: {location: gl.getUniformLocation(shaderProgram, 'uMetallicMap'), index: 2},
+      roughnessMap: {location: gl.getUniformLocation(shaderProgram, 'uRoughnessMap'), index: 3},
+      aoMap: {location: gl.getUniformLocation(shaderProgram, 'uAOMap'), index: 4}
     };
   });
 
@@ -80,36 +80,44 @@ function Main(canvasId: string) {
     return;
   }
 
+  // enabling extensions
+  if (!gl.getExtension('OES_standard_derivatives')) {
+    alert("OES_standard_derivatives is not supported!");
+    return;
+  }
+
   const converter = new Converter(gl);
   const pbr = SetupPbrProgram(converter);
 
   const painter = new Painter(gl);
   const light: LightInfo = {
     position: vec3.fromValues(75.0, 75.0, 100.0), 
-    color: vec3.fromValues(1000.0, 1000.0, 1000.0)
+    color: vec3.fromValues(500.0, 500.0, 500.0)
   };
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
 
   const shpereModel = CreateSphere();
-  shpereModel.albedo = vec3.fromValues(0.75, 0.0, 0.0);
-  shpereModel.metallic = 0.5;
-  shpereModel.roughness = 0.5;
-  shpereModel.ao = 1.0;
+  shpereModel.albedoMap = "assets/iron_albedo.png";
+  shpereModel.normalMap = "assets/iron_normal.png";
+  shpereModel.metallicMap = "assets/iron_metallic.png";
+  shpereModel.roughnessMap = "assets/iron_roughness.png";
+  shpereModel.aoMap = "assets/iron_ao.png";
+
   const sphere = new Drawable(shpereModel, converter);
 
   const metallicSlider: any = document.getElementById("metallic");
   metallicSlider.oninput = () => {
-    sphere.values.metallic = metallicSlider.value / 100.0;
+    // sphere.values.metallic = metallicSlider.value / 100.0;
     // console.log("metallic:" + sphere.values.metallic);
   };
 
   const roughnessSlider: any = document.getElementById("roughness");
   roughnessSlider.oninput = () => {
-    sphere.values.roughness = roughnessSlider.value / 100.0;
+    // sphere.values.roughness = roughnessSlider.value / 100.0;
     // console.log("roughness:" + sphere.values.roughness);
   };
 
-  sphere.move([0.0, 0.0, -6.0]);
+  sphere.move([0.0, 0.0, -5.0]);
 
   let then = 0;
   // Draw the scene repeatedly
@@ -118,7 +126,7 @@ function Main(canvasId: string) {
     const deltaTime = now - then;
     then = now;
 
-    // sphere.rotate([0.0, deltaTime * 0.7, deltaTime]);
+    sphere.rotate([0.0, deltaTime * 0.5, 0.0]);
 
     painter.Draw(camera, sphere, light, pbr);
 

@@ -70,9 +70,15 @@ export class Drawable {
       return;
     }
 
-    if (model.diffuseMap) { this.textures.diffuseMap = converter.CreateTexture(model.diffuseMap); }
     if (model.normalMap) { this.textures.normalMap = converter.CreateTexture(model.normalMap); }
+
+    if (model.diffuseMap) { this.textures.diffuseMap = converter.CreateTexture(model.diffuseMap); }
     if (model.specularMap) { this.textures.specularMap = converter.CreateTexture(model.specularMap); }
+
+    if (model.albedoMap) { this.textures.albedoMap = converter.CreateTexture(model.albedoMap); }
+    if (model.metallicMap) { this.textures.metallicMap = converter.CreateTexture(model.metallicMap); }
+    if (model.roughnessMap) { this.textures.roughnessMap = converter.CreateTexture(model.roughnessMap); }
+    if (model.aoMap) { this.textures.aoMap = converter.CreateTexture(model.aoMap); }
   }
 
   private CopyMaterialValues(model: Model) {

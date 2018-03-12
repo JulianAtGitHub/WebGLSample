@@ -30,9 +30,15 @@ export interface Model {
   indexMode: IndexMode;
 
   // texture
-  diffuseMap?: string;
   normalMap?: string;
+
+  diffuseMap?: string;
   specularMap?: string;
+  
+  albedoMap?: string;
+  metallicMap?: string;
+  roughnessMap?: string;
+  aoMap?: string;
 
   // material
   albedo?: vec3;
@@ -40,56 +46,6 @@ export interface Model {
   roughness?: number;
   ao?: number;
 }
-
-/* Generate shpere C++ code
-
-  std::vector<glm::vec3> positions;
-  std::vector<glm::vec2> uv;
-  std::vector<glm::vec3> normals;
-  std::vector<unsigned int> indices;
-
-  const unsigned int X_SEGMENTS = 64;
-  const unsigned int Y_SEGMENTS = 64;
-  const float PI = 3.14159265359;
-  for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
-  {
-      for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-      {
-          float xSegment = (float)x / (float)X_SEGMENTS;
-          float ySegment = (float)y / (float)Y_SEGMENTS;
-          float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-          float yPos = std::cos(ySegment * PI);
-          float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-
-          positions.push_back(glm::vec3(xPos, yPos, zPos));
-          uv.push_back(glm::vec2(xSegment, ySegment));
-          normals.push_back(glm::vec3(xPos, yPos, zPos));
-      }
-  }
-
-  bool oddRow = false;
-  for (int y = 0; y < Y_SEGMENTS; ++y)
-  {
-      if (!oddRow) // even rows: y == 0, y == 2; and so on
-      {
-          for (int x = 0; x <= X_SEGMENTS; ++x)
-          {
-              indices.push_back(y       * (X_SEGMENTS + 1) + x);
-              indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-          }
-      }
-      else
-      {
-          for (int x = X_SEGMENTS; x >= 0; --x)
-          {
-              indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-              indices.push_back(y       * (X_SEGMENTS + 1) + x);
-          }
-      }
-      oddRow = !oddRow;
-  }
-  indexCount = indices.size();
-*/
 
 export function CreateSphere(): Model {
   const X_SEGMENTS = 64;

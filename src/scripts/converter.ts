@@ -1,7 +1,7 @@
 import * as $ from "jquery";
+import { HDRImage } from "./hdrpng";
 import { vec3 } from "gl-matrix";
 import { DataType, Data } from "./model";
-import { IsPOT } from "./utilities";
 
 export interface LightInfo {
   position?: vec3;
@@ -41,6 +41,11 @@ export interface BufferInfo {
   rawDataType: DataType;
 }
 
+// return value is power of two
+function IsPOT(value: number) {
+  return (value & (value - 1)) == 0;
+}
+
 export class Converter {
 
   public constructor(private gl: WebGLRenderingContext) { }
@@ -49,7 +54,7 @@ export class Converter {
     return this.gl;
   }
 
-    // Initialize a texture and load an image.
+  // Initialize a texture and load an image.
   // When the image finished loading copy it into the texture.
   public CreateTexture(url: string): TextureInfo {
     if (!url) {
@@ -111,6 +116,64 @@ export class Converter {
       textureInfo.height = image.height;
     };
     image.src = url;
+
+    return textureInfo;
+  }
+
+  public CreateRadianceHDRTexture(url: string): TextureInfo {
+    if (!url) {
+      return null;
+    }
+
+    const gl = this.gl;
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    const level = 0;
+    const internalFormat = gl.RGB;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGB;
+    const srcType = gl.FLOAT;
+    const pixel = new Float32Array([1.0, 0.0, 1.0]);  // deep pink
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                  width, height, border, srcFormat, srcType, pixel);
+    
+    const textureInfo: TextureInfo = {
+      texture,
+      width,
+      height,
+      format: srcFormat
+    };
+    const hdrImage = new HDRImage();
+    hdrImage.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, hdrImage.width, hdrImage.height, 
+                    border, srcFormat, srcType, hdrImage.dataFloat);
+
+      // WebGL1 has different requirements for power of 2 images
+      // vs non power of 2 images so check if the image is a
+      // power of 2 in both dimensions.
+      if (IsPOT(hdrImage.width) && IsPOT(hdrImage.height)) {
+        // Yes, it's a power of 2. Generate mips.
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      } else {
+        // No, it's not a power of 2. Turn of mips and set
+        // wrapping to clamp to edge
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      }
+
+      textureInfo.width = hdrImage.width;
+      textureInfo.height = hdrImage.height;
+    };
+    hdrImage.src = url;
 
     return textureInfo;
   }

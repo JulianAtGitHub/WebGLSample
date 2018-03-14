@@ -1,76 +1,27 @@
-import { LightInfo, ProgramInfo, Converter } from "./converter";
+import { LightInfo, ProgramInfo, TextureInfo, Converter } from "./converter";
 import { Painter } from "./painter";
-import { Model, CreateCube, DataType, CreateSphere } from "./model";
+import { Model, CreateSkybox, CreateSphere } from "./model";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
 import { vec3 } from "gl-matrix";
+import * as Utils from "./utilities";
 
-function SetupPhongProgram(converter: Converter): ProgramInfo {
-  const program: ProgramInfo = {
-    program: null,
-  };
+// function GenEnvMap(gl: WebGLRenderingContext, sphereTex: TextureInfo) {
+//   if (!sphereTex.texture) {
+//     return;
+//   }
 
-  converter.CreateShaderProgram("assets/phong.vs", "assets/phong.fs", (shaderProgram: WebGLProgram) => {
-    const gl = converter.context;
-    program.program = shaderProgram;
-    program.attributes = {
-      position: gl.getAttribLocation(shaderProgram, "aPosition"),
-      normal: gl.getAttribLocation(shaderProgram, "aNormal"),
-      texCoord: gl.getAttribLocation(shaderProgram, "aTexCoord")
-    };
-    program.uniforms = {};
-    program.uniforms.transforms = {
-      modelMatrix: {location: gl.getUniformLocation(shaderProgram, "uModelMatrix"), type: DataType.Float4x4},
-      normalMatrix: {location: gl.getUniformLocation(shaderProgram, "uNormalMatrix"), type: DataType.Float3x3},
-      viewProjMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewProjMatrix"), type: DataType.Float4x4},
-    };
-    program.uniforms.others = {
-      viewPosition: {location: gl.getUniformLocation(shaderProgram, "uViewPos"), type: DataType.Float3},
-      lightPosition: {location: gl.getUniformLocation(shaderProgram, "uLightPos"), type: DataType.Float3}
-    };
-    program.uniforms.textures = {
-      diffuseMap: {location: gl.getUniformLocation(shaderProgram, 'uDiffuseMap'), index: 0}
-    };
-  });
+//   const captureFBO = gl.createFramebuffer();
+//   const captureRBO = gl.createRenderbuffer();
+//   gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+//   gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
+//   gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 512, 512);
+//   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);
 
-  return program;
-}
+//   const envCubeMap = gl.createTexture();
+//   gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubeMap);
 
-function SetupPbrProgram(converter: Converter): ProgramInfo {
-  const program: ProgramInfo = {
-    program: null,
-  };
-
-  converter.CreateShaderProgram("assets/pbr.vs", "assets/pbr.fs", (shaderProgram: WebGLProgram) => {
-    const gl = converter.context;
-    program.program = shaderProgram;
-    program.attributes = {
-      position: gl.getAttribLocation(shaderProgram, "aPosition"),
-      normal: gl.getAttribLocation(shaderProgram, "aNormal"),
-      texCoord: gl.getAttribLocation(shaderProgram, "aTexCoord")
-    };
-    program.uniforms = {};
-    program.uniforms.transforms = {
-      modelMatrix: {location: gl.getUniformLocation(shaderProgram, "uModelMatrix"), type: DataType.Float4x4},
-      normalMatrix: {location: gl.getUniformLocation(shaderProgram, "uNormalMatrix"), type: DataType.Float3x3},
-      viewProjMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewProjMatrix"), type: DataType.Float4x4},
-    };
-    program.uniforms.others = {
-      viewPos: {location: gl.getUniformLocation(shaderProgram, "uViewPos"), type: DataType.Float3},
-      lightPos: {location: gl.getUniformLocation(shaderProgram, "uLightPos"), type: DataType.Float3},
-      lightColor: {location: gl.getUniformLocation(shaderProgram, "uLightColor"), type: DataType.Float3}
-    };
-    program.uniforms.textures = {
-      normalMap: {location: gl.getUniformLocation(shaderProgram, 'uNormalMap'), index: 0},
-      albedoMap: {location: gl.getUniformLocation(shaderProgram, 'uAlbedoMap'), index: 1},
-      metallicMap: {location: gl.getUniformLocation(shaderProgram, 'uMetallicMap'), index: 2},
-      roughnessMap: {location: gl.getUniformLocation(shaderProgram, 'uRoughnessMap'), index: 3},
-      aoMap: {location: gl.getUniformLocation(shaderProgram, 'uAOMap'), index: 4}
-    };
-  });
-
-  return program;
-}
+// }
 
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -87,7 +38,8 @@ function Main(canvasId: string) {
   }
 
   const converter = new Converter(gl);
-  const pbr = SetupPbrProgram(converter);
+  // const sphereTex = converter.CreateRadianceHDRTexture("assets/newport_loft.hdr");
+  const pbr = Utils.SetupPbrProgram(converter);
 
   const painter = new Painter(gl);
   const light: LightInfo = {

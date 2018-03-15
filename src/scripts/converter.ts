@@ -153,22 +153,10 @@ export class Converter {
       gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, hdrImage.width, hdrImage.height, 
                     border, srcFormat, srcType, hdrImage.dataFloat);
 
-      // WebGL1 has different requirements for power of 2 images
-      // vs non power of 2 images so check if the image is a
-      // power of 2 in both dimensions.
-      if (IsPOT(hdrImage.width) && IsPOT(hdrImage.height)) {
-        // Yes, it's a power of 2. Generate mips.
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      } else {
-        // No, it's not a power of 2. Turn of mips and set
-        // wrapping to clamp to edge
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      }
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
       textureInfo.width = hdrImage.width;
       textureInfo.height = hdrImage.height;
@@ -197,7 +185,7 @@ export class Converter {
     return shader;
   }
 
-  private LoadProgram(vsSource: string, fsSource: string): WebGLProgram {
+  public CreateProgram(vsSource: string, fsSource: string): WebGLProgram {
     const gl = this.gl;
     const vertexShader = this.LoadShader(vsSource, gl.VERTEX_SHADER);
     const fragmentShader = this.LoadShader(fsSource, gl.FRAGMENT_SHADER);
@@ -217,7 +205,7 @@ export class Converter {
     return shaderProgram;
   }
 
-  public CreateShaderProgram(vsFile: string, fsFile: string, complete: (program: WebGLProgram) => void): void {
+  public CreateProgramFromFile(vsFile: string, fsFile: string, complete: (program: WebGLProgram) => void): void {
     const vertDeferred = $.ajax({
       url: vsFile,
       dataType: 'text',
@@ -235,7 +223,7 @@ export class Converter {
       }
     });
     $.when(vertDeferred, fragDeferred).then((vsSource, fsSource) => {
-      const program = this.LoadProgram(vsSource[0], fsSource[0]);
+      const program = this.CreateProgram(vsSource[0], fsSource[0]);
       complete && complete(program);
     });
   }

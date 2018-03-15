@@ -6,7 +6,7 @@ export function SetupPhongProgram(converter: Converter): ProgramInfo {
     program: null,
   };
 
-  converter.CreateShaderProgram("assets/phong.vs", "assets/phong.fs", (shaderProgram: WebGLProgram) => {
+  converter.CreateProgramFromFile("assets/phong.vs", "assets/phong.fs", (shaderProgram: WebGLProgram) => {
     const gl = converter.context;
     program.program = shaderProgram;
     program.attributes = {
@@ -37,7 +37,7 @@ export function SetupPbrProgram(converter: Converter): ProgramInfo {
     program: null,
   };
 
-  converter.CreateShaderProgram("assets/pbr.vs", "assets/pbr.fs", (shaderProgram: WebGLProgram) => {
+  converter.CreateProgramFromFile("assets/pbr.vs", "assets/pbr.fs", (shaderProgram: WebGLProgram) => {
     const gl = converter.context;
     program.program = shaderProgram;
     program.attributes = {

@@ -16,6 +16,11 @@ export enum DataType {
   Int
 }
 
+export enum TextureType {
+  Texture2D,
+  TextureCubeMap
+}
+
 export interface Data {
   type: DataType;
   data: number[];

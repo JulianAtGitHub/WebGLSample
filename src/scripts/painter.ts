@@ -3,7 +3,7 @@ import { mat4, vec3 } from "gl-matrix";
 import { ShaderUniforms, ShaderTexture, LightInfo, TextureInfo, ProgramInfo } from "./converter";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
-import { IndexMode, DataType } from "./model";
+import { IndexMode, DataType, TextureType } from "./model";
 
 export class Painter {
 
@@ -112,7 +112,11 @@ export class Painter {
           case 5: gl.activeTexture(gl.TEXTURE5); break;
           default: console.error("Invalid texture location."); break;
         }
-        gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture);
+        switch(textureInfo.type) {
+          case TextureType.Texture2D: gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture); break;
+          case TextureType.TextureCubeMap: gl.bindTexture(gl.TEXTURE_CUBE_MAP, textureInfo.texture); break;
+          default: console.error("Invalid texture type."); break;
+        }
         gl.uniform1i(uniform, index);
       }
     });

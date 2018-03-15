@@ -1,7 +1,7 @@
 import * as $ from "jquery";
 import { HDRImage } from "./hdrpng";
 import { vec3 } from "gl-matrix";
-import { DataType, Data } from "./model";
+import { DataType, TextureType, Data } from "./model";
 
 export interface LightInfo {
   position?: vec3;
@@ -10,6 +10,7 @@ export interface LightInfo {
 
 export interface TextureInfo {
   texture: WebGLTexture;
+  type: TextureType;
   width: number;
   height: number;
 }
@@ -83,6 +84,7 @@ export class Converter {
 
     const textureInfo: TextureInfo = {
       texture,
+      type: TextureType.Texture2D,
       width,
       height,
     };
@@ -141,6 +143,7 @@ export class Converter {
     
     const textureInfo: TextureInfo = {
       texture: null,
+      type: TextureType.Texture2D,
       width,
       height,
     };

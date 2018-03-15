@@ -80,6 +80,10 @@ export class Painter {
         value = drawable.modelMatrix;
       } else if (id === "normalMatrix") {
         value = drawable.normalMatrix;
+      } else if (id === "viewMatrix") {
+        value = camera.viewMatrix;
+      } else if (id === "projMatrix") {
+        value = camera.projMatrix;
       }
 
       if (value != undefined && value != null) {
@@ -156,11 +160,7 @@ export class Painter {
     this.SetupOtherUniforms(camera, drawable, light, program);
   }
 
-  public Draw(camera: Camera, drawable: Drawable, light: LightInfo, program: ProgramInfo): void {
-    if (!camera || !drawable || !program || !program.program) {
-      return;
-    }
-
+  public Clear() {
     const gl = this.gl;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
@@ -170,6 +170,14 @@ export class Painter {
   
     // Clear the canvas before we start drawing on it.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  }
+
+  public Draw(camera: Camera, drawable: Drawable, light: LightInfo, program: ProgramInfo): void {
+    if (!camera || !drawable || !program || !program.program) {
+      return;
+    }
+
+    const gl = this.gl;
   
     this.SetupAttributes(drawable, program);
 

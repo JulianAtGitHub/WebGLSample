@@ -5,7 +5,7 @@ import { Drawable } from "./drawable";
 import { Camera } from "./camera";
 import { vec3 } from "gl-matrix";
 import * as Utils from "./utilities";
-import { Sphere2Cube } from "./sphere2cube";
+import { Irradiance } from "./irradiance";
 
 function EnableNeededExtensions(gl: WebGLRenderingContext): boolean {
   if (!gl.getExtension('OES_standard_derivatives')) {
@@ -39,8 +39,8 @@ function Main(canvasId: string) {
   const converter = new Converter(gl);
   const painter = new Painter(gl);
 
-  const sphere2Cube = new Sphere2Cube(converter);
-  sphere2Cube.image = "assets/newport_loft.hdr";
+  const irradiance = new Irradiance(converter);
+  irradiance.image = "assets/newport_loft.hdr";
 
   const pbr = Utils.SetupPbrProgram(converter);
   const skybox = Utils.SetupSkyboxProgram(converter);
@@ -98,20 +98,20 @@ function Main(canvasId: string) {
     ironSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
     plasticSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
 
-    if (sphere2Cube.isReady) {
+    if (irradiance.isReady) {
       painter.Clear();
 
       // scene 
-      ironSphere.textures.irradianceMap = sphere2Cube.irrMap;
-      plasticSphere.textures.irradianceMap = sphere2Cube.irrMap;
+      ironSphere.textures.irradianceMap = irradiance.irrMap;
+      plasticSphere.textures.irradianceMap = irradiance.irrMap;
       painter.Draw(camera, ironSphere, light, pbr);
       painter.Draw(camera, plasticSphere, light, pbr);
 
       // skybox
-      box.textures.envMap = sphere2Cube.envMap;
+      box.textures.envMap = irradiance.envMap;
       painter.Draw(camera, box, null, skybox);
     } else {
-      sphere2Cube.update();
+      irradiance.update();
     }
 
     requestAnimationFrame(render);

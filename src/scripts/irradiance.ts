@@ -80,7 +80,7 @@ enum State {
   Finished
 }
 
-export class Sphere2Cube {
+export class Irradiance {
 
   private state: State;
   private rad2envProgram: ProgramInfo;

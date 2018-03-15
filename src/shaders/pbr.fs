@@ -12,6 +12,9 @@ uniform sampler2D uMetallicMap;
 uniform sampler2D uRoughnessMap;
 uniform sampler2D uAOMap;
 
+// IBL
+uniform samplerCube uIrradianceMap;
+
 // light
 uniform vec3 uLightPos;
 uniform vec3 uLightColor;
@@ -83,6 +86,10 @@ vec3 FresnelSchlick(float cosTheta, vec3 f0) {
   return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 f0, float roughness) {
+  return f0 + (max(vec3(1.0 - roughness), f0) - f0) * pow(1.0 - cosTheta, 5.0);
+}
+
 void main(void) {
   vec3 albedo = pow(texture2D(uAlbedoMap, vTexCoord).rgb, vec3(2.2));
   float metallic = texture2D(uMetallicMap, vTexCoord).r;
@@ -100,41 +107,50 @@ void main(void) {
   float NdotV = max(dot(N, V), 0.0);
   float NdotL = max(dot(N, L), 0.0);
 
-  // vec3 Lo = vec3(0.0);
-
-  // calculate light radiance
-  float distance = length(uLightPos - vPosition);
-  float attenuation = 1.0 / (distance);
-  vec3 radiance = uLightColor * attenuation;
-
   // Calculate reflectance at normal incidence; 
   // If dia-electric (like plastic) use F0 of 0.04
   // And if it's a metal, use the albedo color as F0 (metal workflow)
   vec3 f0 = vec3(0.4);
   f0 = mix(f0, albedo, metallic);
 
-  // BRDF of Cook-Torrance
-  float D = DistributionGGX(NdotH, roughness);
-  float G = GeometrySmith(NdotV, NdotL, roughness);
-  vec3 F = FresnelSchlick(max(dot(H, V), 0.0), f0);
+  // calculate light
+  vec3 Lo = vec3(0.0);
+  {
+    // calculate light radiance
+    float distance = length(uLightPos - vPosition);
+    float attenuation = 1.0 / (distance);
+    vec3 radiance = uLightColor * attenuation;
 
-  vec3 nom = D * G * F;
-  float denom = 4.0 * NdotV * NdotL + 0.001;
-  vec3 specular = nom / denom;
+    // BRDF of Cook-Torrance
+    float D = DistributionGGX(NdotH, roughness);
+    float G = GeometrySmith(NdotV, NdotL, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), f0);
 
-  // kS is equal to Fresnel
-  vec3 kS = F;
-  // For energy conservation, the diffuse and specular light can't be above 1.0; 
-  // To preserve this relationship the diffuse component (kD) should equal 1.0 - kS.
+    vec3 nom = D * G * F;
+    float denom = 4.0 * NdotV * NdotL + 0.001;
+    vec3 specular = nom / denom;
+
+    // kS is equal to Fresnel
+    vec3 kS = F;
+    // For energy conservation, the diffuse and specular light can't be above 1.0; 
+    // To preserve this relationship the diffuse component (kD) should equal 1.0 - kS.
+    vec3 kD = vec3(1.0) - kS;
+    // Multiply kD by the inverse metalness such that only non-metals have diffuse lighting.
+    kD *= 1.0 - metallic;
+
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+  }
+
+  // calculate ambient
+  vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, roughness);
   vec3 kD = vec3(1.0) - kS;
-  // Multiply kD by the inverse metalness such that only non-metals have diffuse lighting.
   kD *= 1.0 - metallic;
+  vec3 irradiance = textureCube(uIrradianceMap, N).rgb;
+  vec3 diffuse = irradiance * albedo;
+  vec3 ambient = (kD * diffuse) * ao;
 
-  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-  vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
-
-  vec3 ambient = vec3(0.03) * albedo * ao;
-
+  // sum components value
   vec3 color = ambient + Lo;
   
   color = HDRToneMapping(color);

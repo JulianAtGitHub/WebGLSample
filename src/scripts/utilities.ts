@@ -85,7 +85,8 @@ export function SetupPbrProgram(converter: Converter): ProgramInfo {
       albedoMap: {location: gl.getUniformLocation(shaderProgram, 'uAlbedoMap'), index: 1},
       metallicMap: {location: gl.getUniformLocation(shaderProgram, 'uMetallicMap'), index: 2},
       roughnessMap: {location: gl.getUniformLocation(shaderProgram, 'uRoughnessMap'), index: 3},
-      aoMap: {location: gl.getUniformLocation(shaderProgram, 'uAOMap'), index: 4}
+      aoMap: {location: gl.getUniformLocation(shaderProgram, 'uAOMap'), index: 4},
+      irradianceMap: {location: gl.getUniformLocation(shaderProgram, 'uIrradianceMap'), index: 5}
     };
   });
 

@@ -6,23 +6,6 @@ import { Camera } from "./camera";
 import { vec3 } from "gl-matrix";
 import * as Utils from "./utilities";
 
-// function GenEnvMap(gl: WebGLRenderingContext, sphereTex: TextureInfo) {
-//   if (!sphereTex.texture) {
-//     return;
-//   }
-
-//   const captureFBO = gl.createFramebuffer();
-//   const captureRBO = gl.createRenderbuffer();
-//   gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
-//   gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
-//   gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 512, 512);
-//   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);
-
-//   const envCubeMap = gl.createTexture();
-//   gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubeMap);
-
-// }
-
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
   const gl = canvas.getContext("webgl");

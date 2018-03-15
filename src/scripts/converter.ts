@@ -12,7 +12,6 @@ export interface TextureInfo {
   texture: WebGLTexture;
   width: number;
   height: number;
-  format: number;
 }
 
 export interface ShaderTexture {
@@ -86,7 +85,6 @@ export class Converter {
       texture,
       width,
       height,
-      format: srcFormat
     };
 
     const image = new Image();
@@ -128,7 +126,7 @@ export class Converter {
     const gl = this.gl;
 
     const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // gl.bindTexture(gl.TEXTURE_2D, texture);
 
     const level = 0;
     const internalFormat = gl.RGB;
@@ -137,15 +135,14 @@ export class Converter {
     const border = 0;
     const srcFormat = gl.RGB;
     const srcType = gl.FLOAT;
-    const pixel = new Float32Array([1.0, 0.0, 1.0]);  // deep pink
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                  width, height, border, srcFormat, srcType, pixel);
+    // const pixel = new Float32Array([1.0, 0.0, 1.0]);  // deep pink
+    // gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+    //               width, height, border, srcFormat, srcType, pixel);
     
     const textureInfo: TextureInfo = {
-      texture,
+      texture: null,
       width,
       height,
-      format: srcFormat
     };
     const hdrImage = new HDRImage();
     hdrImage.onload = () => {
@@ -157,7 +154,8 @@ export class Converter {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
+      
+      textureInfo.texture = texture;
       textureInfo.width = hdrImage.width;
       textureInfo.height = hdrImage.height;
     };
@@ -177,7 +175,7 @@ export class Converter {
 
     // check if it compiled successfully
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+      console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
       gl.deleteShader(shader);
       return null;
     }
@@ -198,7 +196,7 @@ export class Converter {
   
     // If creating the shader program failed, alert
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-      alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+      console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
       return null;
     }
 

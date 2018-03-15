@@ -53,15 +53,25 @@ function Main(canvasId: string) {
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
   camera.HandleMouseInput(canvas);
 
-  const shpereModel = CreateSphere();
-  shpereModel.albedoMap = "assets/iron_albedo.png";
-  shpereModel.normalMap = "assets/iron_normal.png";
-  shpereModel.metallicMap = "assets/iron_metallic.png";
-  shpereModel.roughnessMap = "assets/iron_roughness.png";
-  shpereModel.aoMap = "assets/iron_ao.png";
+  const ironSphereModel = CreateSphere();
+  ironSphereModel.albedoMap = "assets/iron_albedo.png";
+  ironSphereModel.normalMap = "assets/iron_normal.png";
+  ironSphereModel.metallicMap = "assets/iron_metallic.png";
+  ironSphereModel.roughnessMap = "assets/iron_roughness.png";
+  ironSphereModel.aoMap = "assets/iron_ao.png";
 
-  const sphere = new Drawable(shpereModel, converter);
-  sphere.move([0.0, 0.0, -6.0]);
+  const ironSphere = new Drawable(ironSphereModel, converter);
+  ironSphere.move([1.5, 0.0, -6.0]);
+
+  const plasticSphereModel = CreateSphere();
+  plasticSphereModel.albedoMap = "assets/plastic_albedo.png";
+  plasticSphereModel.normalMap = "assets/plastic_normal.png";
+  plasticSphereModel.metallicMap = "assets/plastic_metallic.png";
+  plasticSphereModel.roughnessMap = "assets/plastic_roughness.png";
+  plasticSphereModel.aoMap = "assets/plastic_ao.png";
+
+  const plasticSphere = new Drawable(plasticSphereModel, converter);
+  plasticSphere.move([-1.5, 0.0, -6.0]);
 
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, converter);
@@ -85,12 +95,20 @@ function Main(canvasId: string) {
     const deltaTime = now - then;
     then = now;
 
-    sphere.rotate([0.0, deltaTime * 0.5, 0.0]);
+    ironSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
+    plasticSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
 
     if (sphere2Cube.isReady) {
       painter.Clear();
-      painter.Draw(camera, sphere, light, pbr);
-      // box.textures.envMap = sphere2Cube.envMap;
+
+      // scene 
+      ironSphere.textures.irradianceMap = sphere2Cube.irrMap;
+      plasticSphere.textures.irradianceMap = sphere2Cube.irrMap;
+      painter.Draw(camera, ironSphere, light, pbr);
+      painter.Draw(camera, plasticSphere, light, pbr);
+
+      // skybox
+      box.textures.envMap = sphere2Cube.envMap;
       painter.Draw(camera, box, null, skybox);
     } else {
       sphere2Cube.update();

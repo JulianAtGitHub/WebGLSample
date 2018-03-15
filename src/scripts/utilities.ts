@@ -32,6 +32,30 @@ export function SetupPhongProgram(converter: Converter): ProgramInfo {
   return program;
 }
 
+export function SetupSkyboxProgram(converter: Converter): ProgramInfo {
+  const program: ProgramInfo = {
+    program: null,
+  };
+
+  converter.CreateProgramFromFile("assets/skybox.vs", "assets/skybox.fs", (shaderProgram: WebGLProgram) => {
+    const gl = converter.context;
+    program.program = shaderProgram;
+    program.attributes = {
+      position: gl.getAttribLocation(shaderProgram, "aPosition"),
+    };
+    program.uniforms = {};
+    program.uniforms.transforms = {
+      viewMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewMatrix"), type: DataType.Float4x4},
+      projMatrix: {location: gl.getUniformLocation(shaderProgram, "uProjMatrix"), type: DataType.Float4x4}
+    };
+    program.uniforms.others = {};
+    program.uniforms.textures = {
+      envMap: {location: gl.getUniformLocation(shaderProgram, 'uEnvMap'), index: 0}
+    };
+  });
+  return program;
+}
+
 export function SetupPbrProgram(converter: Converter): ProgramInfo {
   const program: ProgramInfo = {
     program: null,

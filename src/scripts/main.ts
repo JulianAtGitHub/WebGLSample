@@ -61,7 +61,7 @@ function Main(canvasId: string) {
   shpereModel.aoMap = "assets/iron_ao.png";
 
   const sphere = new Drawable(shpereModel, converter);
-  sphere.move([0.0, 0.0, -5.0]);
+  sphere.move([0.0, 0.0, -6.0]);
 
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, converter);

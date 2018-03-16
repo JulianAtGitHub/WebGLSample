@@ -1,20 +1,20 @@
-attribute vec3 aPosition;
-attribute vec3 aNormal;
-attribute vec2 aTexCoord;
+attribute vec3 a_position;
+attribute vec3 a_normal;
+attribute vec2 a_texCoord;
 
-uniform mat4 uModelMatrix;
-uniform mat3 uNormalMatrix;
-uniform mat4 uViewProjMatrix;
+uniform mat4 u_modelMatrix;
+uniform mat3 u_normalMatrix;
+uniform mat4 u_viewProjMatrix;
 
-varying vec3 vPosition;
-varying vec3 vNormal;
-varying vec2 vTexCoord;
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec2 v_texCoord;
 
 void main(void) {
-  vec4 position = uModelMatrix * vec4(aPosition, 1.0);
-  gl_Position = uViewProjMatrix * position;
+  vec4 position = u_modelMatrix * vec4(aPosition, 1.0);
+  gl_Position = u_viewProjMatrix * position;
 
-  vPosition = position.xyz;
-  vNormal = uNormalMatrix * aNormal;
-  vTexCoord = aTexCoord;
+  v_position = position.xyz;
+  v_normal = u_normalMatrix * aNormal;
+  v_texCoord = a_texCoord;
 }

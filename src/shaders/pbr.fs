@@ -1,38 +1,38 @@
 #extension GL_OES_standard_derivatives : enable
 precision mediump float;
 
-varying vec3 vPosition;
-varying vec3 vNormal;
-varying vec2 vTexCoord;
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec2 v_texCoord;
 
 // material
-uniform sampler2D uNormalMap;
-uniform sampler2D uAlbedoMap;
-uniform sampler2D uMetallicMap;
-uniform sampler2D uRoughnessMap;
-uniform sampler2D uAOMap;
+uniform sampler2D u_normalMap;
+uniform sampler2D u_albedoMap;
+uniform sampler2D u_metallicMap;
+uniform sampler2D u_roughnessMap;
+uniform sampler2D u_aoMap;
 
 // IBL
-uniform samplerCube uIrradianceMap;
+uniform samplerCube u_irradianceMap;
 
 // light
-uniform vec3 uLightPos;
-uniform vec3 uLightColor;
+uniform vec3 u_lightPos;
+uniform vec3 u_lightColor;
 
-uniform vec3 uViewPos;
+uniform vec3 u_viewPos;
 
 const float PI = 3.14159265359;
 
 // Easy trick to get tangent-normals to world-space to keep PBR code simplified.
 vec3 NormalFromTexture() {
-  vec3 tangentNormal = texture2D(uNormalMap, vTexCoord).xyz * 2.0 - 1.0;
+  vec3 tangentNormal = texture2D(u_normalMap, v_texCoord).xyz * 2.0 - 1.0;
 
-  vec3 Q1 = dFdx(vPosition);
-  vec3 Q2 = dFdy(vPosition);
-  vec2 st1 = dFdx(vTexCoord);
-  vec2 st2 = dFdy(vTexCoord);
+  vec3 Q1 = dFdx(v_position);
+  vec3 Q2 = dFdy(v_position);
+  vec2 st1 = dFdx(v_texCoord);
+  vec2 st2 = dFdy(v_texCoord);
 
-  vec3 N = normalize(vNormal);
+  vec3 N = normalize(v_normal);
   vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
   vec3 B = -normalize(cross(N, T));
   mat3 TBN = mat3(T, B, N);
@@ -91,16 +91,16 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 f0, float roughness) {
 }
 
 void main(void) {
-  vec3 albedo = pow(texture2D(uAlbedoMap, vTexCoord).rgb, vec3(2.2));
-  float metallic = texture2D(uMetallicMap, vTexCoord).r;
-  float roughness = texture2D(uRoughnessMap, vTexCoord).r;
-  float ao = texture2D(uAOMap, vTexCoord).r;
+  vec3 albedo = pow(texture2D(u_albedoMap, v_texCoord).rgb, vec3(2.2));
+  float metallic = texture2D(u_metallicMap, v_texCoord).r;
+  float roughness = texture2D(u_roughnessMap, v_texCoord).r;
+  float ao = texture2D(u_aoMap, v_texCoord).r;
 
   vec3 N = NormalFromTexture();
-  // vec3 N = normalize(vNormal);
-  vec3 V = normalize(uViewPos - vPosition);
+  // vec3 N = normalize(v_normal);
+  vec3 V = normalize(u_viewPos - v_position);
 
-  vec3 L = normalize(uLightPos - vPosition);
+  vec3 L = normalize(u_lightPos - v_position);
   vec3 H = normalize(V + L);
 
   float NdotH = max(dot(N, H), 0.0);
@@ -117,9 +117,9 @@ void main(void) {
   vec3 Lo = vec3(0.0);
   {
     // calculate light radiance
-    float distance = length(uLightPos - vPosition);
+    float distance = length(u_lightPos - v_position);
     float attenuation = 1.0 / (distance);
-    vec3 radiance = uLightColor * attenuation;
+    vec3 radiance = u_lightColor * attenuation;
 
     // BRDF of Cook-Torrance
     float D = DistributionGGX(NdotH, roughness);
@@ -146,7 +146,7 @@ void main(void) {
   vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, roughness);
   vec3 kD = vec3(1.0) - kS;
   kD *= 1.0 - metallic;
-  vec3 irradiance = textureCube(uIrradianceMap, N).rgb;
+  vec3 irradiance = textureCube(u_irradianceMap, N).rgb;
   vec3 diffuse = irradiance * albedo;
   vec3 ambient = (kD * diffuse) * ao;
 

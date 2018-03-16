@@ -62,6 +62,8 @@ export class Converter {
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
                   width, height, border, srcFormat, srcType, pixel);
 
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
     const textureInfo: TextureInfo = {
       texture,
       type: TextureType.Texture2D,
@@ -92,6 +94,8 @@ export class Converter {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       }
 
+      gl.bindTexture(gl.TEXTURE_2D, null);
+
       textureInfo.width = image.width;
       textureInfo.height = image.height;
     };
@@ -108,7 +112,6 @@ export class Converter {
     const gl = this.gl;
 
     const texture = gl.createTexture();
-    // gl.bindTexture(gl.TEXTURE_2D, texture);
 
     const level = 0;
     const internalFormat = gl.RGB;
@@ -134,6 +137,8 @@ export class Converter {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      gl.bindTexture(gl.TEXTURE_2D, null);
       
       textureInfo.texture = texture;
       textureInfo.width = hdrImage.width;
@@ -228,8 +233,10 @@ export class Converter {
         gl.bufferData(type, new Uint16Array(data.data), gl.STATIC_DRAW);
         break;
       default:
+        console.error("CreateBufferObject: invalid buffer type " + type);
         break;
     }
+    gl.bindBuffer(type, null);
     return buffer;
   }
 

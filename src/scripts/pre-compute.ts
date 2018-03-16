@@ -81,7 +81,7 @@ enum State {
   Finished
 }
 
-export class Irradiance {
+export class PreCompute {
 
   private state: State;
   private rad2envProgram: Program;

@@ -84,26 +84,26 @@ enum State {
 export class PreCompute {
 
   private state: State;
+  private unitCube: Drawable;
   private rad2envProgram: Program;
   private env2irrProgram: Program;
-  private unitCube: Drawable;
-  private shpereMap: TextureInfo;
   private envSize: number;
   private irrSize: number;
-
-  // temp properties
-  private cubemapTargets: number[];
-  private viewProjMatrixes: mat4[];
   private envCubeMap: WebGLTexture;
   private irrCubeMap: WebGLTexture;
+
+  // temp properties
+  private shpereMap: TextureInfo;
+  private cubemapTargets: number[];
+  private viewProjMatrixes: mat4[];
   private captureFBO: WebGLFramebuffer;
   private captureRBO: WebGLRenderbuffer;
 
   public constructor(private converter: Converter) {
-    this.rad2envProgram = null;
-    this.env2irrProgram = null;
     this.unitCube = null;
     this.shpereMap = null;
+    this.rad2envProgram = null;
+    this.env2irrProgram = null;
     this.envSize = 512;
     this.irrSize = 32;
 
@@ -252,7 +252,6 @@ export class PreCompute {
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    this.envCubeMap = envCubeMap;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
@@ -275,7 +274,7 @@ export class PreCompute {
 
       for (let i = 0; i < this.cubemapTargets.length; ++i) {
         this.rad2envProgram.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], this.envCubeMap, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], envCubeMap, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         const positions = this.unitCube.buffers.positions;
@@ -289,7 +288,9 @@ export class PreCompute {
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
+    this.envCubeMap = envCubeMap;
     this.state = State.CalculateIrradianceMap;
   }
 
@@ -315,7 +316,6 @@ export class PreCompute {
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    this.irrCubeMap = irrCubeMap;
 
     this.env2irrProgram.Use();
 
@@ -333,7 +333,7 @@ export class PreCompute {
 
       for (let i = 0; i < this.cubemapTargets.length; ++i) {
         this.env2irrProgram.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], this.irrCubeMap, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], irrCubeMap, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         const positions = this.unitCube.buffers.positions;
@@ -347,11 +347,22 @@ export class PreCompute {
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    // gl.deleteFramebuffer(captureFBO);
-    // gl.deleteRenderbuffer(captureRBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
+    this.irrCubeMap = irrCubeMap;
     this.state = State.Finished;
+
+    // delete temp values
+    gl.deleteFramebuffer(this.captureFBO);
+    gl.deleteRenderbuffer(this.captureRBO);
+
+    this.captureFBO = null;
+    this.captureRBO = null;
+
+    gl.deleteTexture(this.shpereMap.texture);
+    this.shpereMap = null;
   }
 
 }

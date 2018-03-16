@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import { mat4, vec3 } from "gl-matrix";
-import { ShaderUniforms, ShaderTexture, LightInfo, TextureInfo, ProgramInfo } from "./converter";
+import { LightInfo, TextureInfo, BufferInfo } from "./converter";
+import { Program } from "./program";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
 import { IndexMode, DataType, TextureType } from "./model";
@@ -9,159 +10,89 @@ export class Painter {
 
   public constructor(private gl: WebGLRenderingContext) { }
 
-  private SetupAttributes(drawable: Drawable, program: ProgramInfo): void {
-    if (!drawable || !program || !program.attributes) {
+  private SetupOtherUniforms(camera: Camera, drawable: Drawable, light: LightInfo, program: Program): void {
+    if (!camera || !drawable || !program) {
       return;
     }
 
     const gl = this.gl;
-    _.map(program.attributes, (attribute: number, id: string) => {
-      let numComponents = 3;  // pull out 2 values per iteration
-      const type = gl.FLOAT;    // the data in the buffer is 32bit floats
-      const normalize = false;  // don't normalize
-      const stride = 0;         // how many bytes to get from one set of values to the next
-                                // 0 = use type and numComponents above
-      const offset = 0;         // how many bytes inside the buffer to start from
+    _.map(program.uniformNames, (name: string) => {
+      const id = name.substring(2);
 
-      const buffer = drawable.buffers[id + "s"];
-      if (!buffer) {
-        console.error("Attribute " + id + "s" + " not found when draw object.");
-      } else {
-        // data type case
-        switch(buffer.rawDataType) {
-          case DataType.Float2: numComponents = 2; break;
-          case DataType.Float4: numComponents = 4; break;
-          case DataType.Float3:
-          default: break;
-        }
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer.buffer);
-        gl.vertexAttribPointer(
-          attribute,
-          numComponents,
-          type,
-          normalize,
-          stride,
-          offset);
-        gl.enableVertexAttribArray(attribute);
-      }
-    });
-  }
-
-  private SetUniform(uniform: WebGLUniformLocation, value: any, type: DataType): void {
-    if (uniform == null || uniform == undefined || value == null || value == undefined) {
-      return;
-    }
-
-    const gl = this.gl;
-    switch(type) {
-      case DataType.Float4x4: gl.uniformMatrix4fv(uniform, false, value); break;
-      case DataType.Float3x3: gl.uniformMatrix3fv(uniform, false, value); break;
-      case DataType.Float4: gl.uniform4fv(uniform, value); break;
-      case DataType.Float3: gl.uniform3fv(uniform, value); break;
-      case DataType.Float2: gl.uniform2fv(uniform, value); break;
-      case DataType.Float: gl.uniform1f(uniform, value); break;
-      case DataType.Int: gl.uniform1i(uniform, value); break;
-      default: console.error("Unknow uniform type:" + type); break;
-    }
-  }
-
-  private SetupTransformUniforms(camera: Camera, drawable: Drawable, program: ProgramInfo): void {
-    if (!camera || !drawable || !program || !program.uniforms || !program.uniforms.transforms) {
-      return;
-    }
-
-    const gl = this.gl;
-    _.map(program.uniforms.transforms, (uniform: ShaderUniforms, id: string) => {
       let value = undefined;
-      if (id === "viewProjMatrix") {
-        value = camera.viewProjMatrix;
-      } else if (id === "modelMatrix") {
-        value = drawable.modelMatrix;
-      } else if (id === "normalMatrix") {
-        value = drawable.normalMatrix;
-      } else if (id === "viewMatrix") {
-        value = camera.viewMatrix;
-      } else if (id === "projMatrix") {
-        value = camera.projMatrix;
+      let type = undefined;
+      switch (id) {
+
+        case "viewProjMatrix": 
+          value = camera.viewProjMatrix;
+          type = DataType.Float4x4;
+          break;
+
+        case "modelMatrix": 
+          value = drawable.modelMatrix;
+          type = DataType.Float4x4;
+          break;
+
+        case "normalMatrix": 
+          value = drawable.normalMatrix;
+          type = DataType.Float3x3;
+          break;
+
+        case "viewMatrix":
+          value = camera.viewMatrix;
+          type = DataType.Float4x4;
+          break;
+
+        case "projMatrix":
+          value = camera.projMatrix;
+          type = DataType.Float4x4;
+          break;
+
+        case "viewPos":
+          value = camera.eye;
+          type = DataType.Float3;
+          break;
+
+        case "lightPos":
+          value = light.position;
+          type = DataType.Float3;
+          break;
+
+        case "lightColor":
+          value = light.color;
+          type = DataType.Float3;
+          break;
+
+        case "albedo":
+          value = drawable.values.albedo;
+          type = DataType.Float3;
+          break;
+
+        case "metallic":
+          value = drawable.values.metallic;
+          type = DataType.Float;
+          break;
+
+        case "roughness":
+          value = drawable.values.roughness;
+          type = DataType.Float;
+          break;
+
+        case "ao":
+          value = drawable.values.ao;
+          type = DataType.Float;
+          break;
+
+        default:
+          break;
       }
 
       if (value != undefined && value != null) {
-        this.SetUniform(uniform.location, value, uniform.type);
-      }
-    });
-  }
-
-  private SetupTextureUniforms(drawable: Drawable, program: ProgramInfo): void {
-    if (!drawable || !program || !program.uniforms || !program.uniforms.textures) {
-      return;
-    }
-    const gl = this.gl;
-
-    _.map(program.uniforms.textures, (texture: ShaderTexture, id: string) => {
-      const textureInfo = drawable.textures[id];
-      if (textureInfo && textureInfo.texture) {
-        const index = texture.index;
-        const uniform = texture.location;
-        switch(index) {
-          case 0: gl.activeTexture(gl.TEXTURE0); break;
-          case 1: gl.activeTexture(gl.TEXTURE1); break;
-          case 2: gl.activeTexture(gl.TEXTURE2); break;
-          case 3: gl.activeTexture(gl.TEXTURE3); break;
-          case 4: gl.activeTexture(gl.TEXTURE4); break;
-          case 5: gl.activeTexture(gl.TEXTURE5); break;
-          default: console.error("Invalid texture location."); break;
-        }
-        switch(textureInfo.type) {
-          case TextureType.Texture2D: gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture); break;
-          case TextureType.TextureCubeMap: gl.bindTexture(gl.TEXTURE_CUBE_MAP, textureInfo.texture); break;
-          default: console.error("Invalid texture type."); break;
-        }
-        gl.uniform1i(uniform, index);
-      }
-    });
-  }
-
-  private SetupOtherUniforms(camera: Camera, drawable: Drawable, light: LightInfo, program: ProgramInfo): void {
-    if (!program || !program.uniforms || !program.uniforms.others) {
-      return;
-    }
-
-    const gl = this.gl;
-    _.map(program.uniforms.others, (uniform: ShaderUniforms, id: string) => {
-      let value = undefined;
-      if (id === "viewPos") {
-        value = camera.eye;
-      } else if (id === "lightPos") {
-        value = light.position;
-      } else if (id === "lightColor") {
-        value = light.color;
-      } else if (id === "albedo") {
-        value = drawable.values.albedo;
-      } else if (id === "metallic") {
-        value = drawable.values.metallic;
-      } else if (id === "roughness") {
-        value = drawable.values.roughness;
-      } else if (id === "ao") {
-        value = drawable.values.ao;
-      }
-
-      if (value != undefined && value != null) {
-        this.SetUniform(uniform.location, value, uniform.type);
+        program.SetUniform(name, value, type);
       } else {
-        console.error("Uniform " + id + " not found value setted in drawable!");
+        console.error("Uniform " + id + " not found in drawable!");
       }
     });
-  }
-
-  private SetupUniforms(camera: Camera, drawable: Drawable, light: LightInfo, program: ProgramInfo): void {
-    if (!camera || !drawable || !program || !program.uniforms) {
-      return;
-    }
-
-    this.SetupTransformUniforms(camera, drawable, program);
-    this.SetupTextureUniforms(drawable, program);
-    this.SetupOtherUniforms(camera, drawable, light, program);
   }
 
   public Clear() {
@@ -176,19 +107,39 @@ export class Painter {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 
-  public Draw(camera: Camera, drawable: Drawable, light: LightInfo, program: ProgramInfo): void {
-    if (!camera || !drawable || !program || !program.program) {
+  public Draw(camera: Camera, drawable: Drawable, light: LightInfo, program: Program): void {
+    if (!camera || !drawable || !program || !program.isReady) {
       return;
     }
 
     const gl = this.gl;
-  
-    this.SetupAttributes(drawable, program);
 
     // Tell WebGL to use our program when drawing
-    gl.useProgram(program.program);
+    program.Use();
 
-    this.SetupUniforms(camera, drawable, light, program);
+    // set attributes
+    _.map(program.attributeNames, (id: string) => {
+      const name = id.substring(2) + "s";
+      const bufferInfo = drawable.buffers[name];
+      if (bufferInfo) {
+        program.SetAttribute(id, bufferInfo.buffer, bufferInfo.rawDataType);
+      } else {
+        console.error("Drawable buffer:" + name + " not exsit");
+      }
+    });
+
+    // set textures
+    _.map(program.textureNames, (id: string) => {
+      const name = id.substring(2);
+      const textureInfo = drawable.textures[name];
+      if (textureInfo) {
+        program.SetTexture(id, textureInfo.texture, textureInfo.type);
+      } else {
+        console.error("Drawable texture:" + name + " not exsit");
+      }
+    });
+
+    this.SetupOtherUniforms(camera, drawable, light, program);
 
     // Tell WebGL which indices to use to index the vertices
     const indices = drawable.buffers.indices;

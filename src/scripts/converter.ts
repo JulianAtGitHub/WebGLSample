@@ -15,26 +15,6 @@ export interface TextureInfo {
   height: number;
 }
 
-export interface ShaderTexture {
-  location: WebGLUniformLocation;
-  index: number;
-}
-
-export interface ShaderUniforms {
-  location: WebGLUniformLocation;
-  type: DataType;
-}
-
-export interface ProgramInfo {
-  program: WebGLProgram;
-  attributes?: {[id: string]: number};
-  uniforms?: {
-    transforms?: {[id: string]: ShaderUniforms};
-    textures?: {[id: string]: ShaderTexture};
-    others?: {[id: string]: ShaderUniforms};
-  };
-}
-
 export interface BufferInfo {
   buffer: WebGLBuffer;
   rawData: number[];
@@ -137,10 +117,7 @@ export class Converter {
     const border = 0;
     const srcFormat = gl.RGB;
     const srcType = gl.FLOAT;
-    // const pixel = new Float32Array([1.0, 0.0, 1.0]);  // deep pink
-    // gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-    //               width, height, border, srcFormat, srcType, pixel);
-    
+
     const textureInfo: TextureInfo = {
       texture: null,
       type: TextureType.Texture2D,

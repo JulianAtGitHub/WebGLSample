@@ -1,93 +1,81 @@
-import { DataType } from "./model";
-import { ProgramInfo, Converter } from "./converter";
+import { DataType, TextureType } from "./model";
+import { Converter } from "./converter";
+import { Program } from "./program";
 
-export function SetupPhongProgram(converter: Converter): ProgramInfo {
-  const program: ProgramInfo = {
-    program: null,
-  };
-
-  converter.CreateProgramFromFile("assets/phong.vs", "assets/phong.fs", (shaderProgram: WebGLProgram) => {
-    const gl = converter.context;
-    program.program = shaderProgram;
-    program.attributes = {
-      position: gl.getAttribLocation(shaderProgram, "aPosition"),
-      normal: gl.getAttribLocation(shaderProgram, "aNormal"),
-      texCoord: gl.getAttribLocation(shaderProgram, "aTexCoord")
-    };
-    program.uniforms = {};
-    program.uniforms.transforms = {
-      modelMatrix: {location: gl.getUniformLocation(shaderProgram, "uModelMatrix"), type: DataType.Float4x4},
-      normalMatrix: {location: gl.getUniformLocation(shaderProgram, "uNormalMatrix"), type: DataType.Float3x3},
-      viewProjMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewProjMatrix"), type: DataType.Float4x4},
-    };
-    program.uniforms.others = {
-      viewPosition: {location: gl.getUniformLocation(shaderProgram, "uViewPos"), type: DataType.Float3},
-      lightPosition: {location: gl.getUniformLocation(shaderProgram, "uLightPos"), type: DataType.Float3}
-    };
-    program.uniforms.textures = {
-      diffuseMap: {location: gl.getUniformLocation(shaderProgram, 'uDiffuseMap'), index: 0}
-    };
+export function CreatePhoneProgram(converter: Converter): Program {
+  const program = new Program(converter, {
+    vertFile: "assets/phong.vs",
+    fragFile: "assets/phong.fs",
+    attributes: {
+      "a_position": DataType.Float3,
+      "a_normal": DataType.Float3,
+      "a_texCoord": DataType.Float2
+    },
+    uniforms: {
+      textures: {
+        "u_diffuseMap": TextureType.Texture2D
+      },
+      others: {
+        "u_modelMatrix": DataType.Float4x4,
+        "u_normalMatrix": DataType.Float3x3,
+        "u_viewProjMatrix": DataType.Float4x4,
+        "u_viewPos": DataType.Float3,
+        "u_lightPos": DataType.Float3
+      }
+    }
   });
 
   return program;
 }
 
-export function SetupSkyboxProgram(converter: Converter): ProgramInfo {
-  const program: ProgramInfo = {
-    program: null,
-  };
-
-  converter.CreateProgramFromFile("assets/skybox.vs", "assets/skybox.fs", (shaderProgram: WebGLProgram) => {
-    const gl = converter.context;
-    program.program = shaderProgram;
-    program.attributes = {
-      position: gl.getAttribLocation(shaderProgram, "aPosition"),
-    };
-    program.uniforms = {};
-    program.uniforms.transforms = {
-      viewMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewMatrix"), type: DataType.Float4x4},
-      projMatrix: {location: gl.getUniformLocation(shaderProgram, "uProjMatrix"), type: DataType.Float4x4}
-    };
-    program.uniforms.others = {};
-    program.uniforms.textures = {
-      envMap: {location: gl.getUniformLocation(shaderProgram, 'uEnvMap'), index: 0}
-    };
+export function CreateSkyboxProgram(converter: Converter): Program {
+  const program = new Program(converter, {
+    vertFile: "assets/skybox.vs",
+    fragFile: "assets/skybox.fs",
+    attributes: {
+      "a_position": DataType.Float3
+    },
+    uniforms: {
+      textures: {
+        "u_envMap": TextureType.TextureCubeMap
+      },
+      others: {
+        "u_viewMatrix": DataType.Float4x4,
+        "u_projMatrix": DataType.Float4x4
+      }
+    }
   });
+
   return program;
 }
 
-export function SetupPbrProgram(converter: Converter): ProgramInfo {
-  const program: ProgramInfo = {
-    program: null,
-  };
-
-  converter.CreateProgramFromFile("assets/pbr.vs", "assets/pbr.fs", (shaderProgram: WebGLProgram) => {
-    const gl = converter.context;
-    program.program = shaderProgram;
-    program.attributes = {
-      position: gl.getAttribLocation(shaderProgram, "aPosition"),
-      normal: gl.getAttribLocation(shaderProgram, "aNormal"),
-      texCoord: gl.getAttribLocation(shaderProgram, "aTexCoord")
-    };
-    program.uniforms = {};
-    program.uniforms.transforms = {
-      modelMatrix: {location: gl.getUniformLocation(shaderProgram, "uModelMatrix"), type: DataType.Float4x4},
-      normalMatrix: {location: gl.getUniformLocation(shaderProgram, "uNormalMatrix"), type: DataType.Float3x3},
-      viewProjMatrix: {location: gl.getUniformLocation(shaderProgram, "uViewProjMatrix"), type: DataType.Float4x4},
-    };
-    program.uniforms.others = {
-      viewPos: {location: gl.getUniformLocation(shaderProgram, "uViewPos"), type: DataType.Float3},
-      lightPos: {location: gl.getUniformLocation(shaderProgram, "uLightPos"), type: DataType.Float3},
-      lightColor: {location: gl.getUniformLocation(shaderProgram, "uLightColor"), type: DataType.Float3}
-    };
-    program.uniforms.textures = {
-      normalMap: {location: gl.getUniformLocation(shaderProgram, 'uNormalMap'), index: 0},
-      albedoMap: {location: gl.getUniformLocation(shaderProgram, 'uAlbedoMap'), index: 1},
-      metallicMap: {location: gl.getUniformLocation(shaderProgram, 'uMetallicMap'), index: 2},
-      roughnessMap: {location: gl.getUniformLocation(shaderProgram, 'uRoughnessMap'), index: 3},
-      aoMap: {location: gl.getUniformLocation(shaderProgram, 'uAOMap'), index: 4},
-      irradianceMap: {location: gl.getUniformLocation(shaderProgram, 'uIrradianceMap'), index: 5}
-    };
+export function CreatePbrProgram(converter: Converter): Program {
+  const program = new Program(converter, {
+    vertFile: "assets/pbr.vs",
+    fragFile: "assets/pbr.fs",
+    attributes: {
+      "a_position": DataType.Float3,
+      "a_normal": DataType.Float3,
+      "a_texCoord": DataType.Float2
+    },
+    uniforms: {
+      textures: {
+        "u_normalMap": TextureType.Texture2D,
+        "u_albedoMap": TextureType.Texture2D,
+        "u_metallicMap": TextureType.Texture2D,
+        "u_roughnessMap": TextureType.Texture2D,
+        "u_aoMap": TextureType.Texture2D,
+        "u_irradianceMap": TextureType.TextureCubeMap
+      },
+      others: {
+        "u_modelMatrix": DataType.Float4x4,
+        "u_normalMatrix": DataType.Float3x3,
+        "u_viewProjMatrix": DataType.Float4x4,
+        "u_viewPos": DataType.Float3,
+        "u_lightPos": DataType.Float3,
+        "u_lightColor": DataType.Float3
+      }
+    }
   });
 
   return program;

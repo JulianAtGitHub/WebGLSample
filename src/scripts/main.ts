@@ -1,4 +1,4 @@
-import { LightInfo, ProgramInfo, TextureInfo, Converter } from "./converter";
+import { LightInfo, TextureInfo, Converter } from "./converter";
 import { Painter } from "./painter";
 import { Model, CreateSkybox, CreateSphere } from "./model";
 import { Drawable } from "./drawable";
@@ -42,8 +42,8 @@ function Main(canvasId: string) {
   const irradiance = new Irradiance(converter);
   irradiance.image = "assets/newport_loft.hdr";
 
-  const pbr = Utils.SetupPbrProgram(converter);
-  const skybox = Utils.SetupSkyboxProgram(converter);
+  const pbr = Utils.CreatePbrProgram(converter);
+  const skybox = Utils.CreateSkyboxProgram(converter);
 
   const light: LightInfo = {
     position: vec3.fromValues(75.0, 75.0, 100.0), 

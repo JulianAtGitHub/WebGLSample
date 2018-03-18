@@ -6,7 +6,7 @@ import { Drawable } from "./drawable";
 import { Camera } from "./camera";
 import { IndexMode, DataType, TextureType } from "./model";
 
-export class Painter {
+export class Renderer {
 
   public constructor(private gl: WebGLRenderingContext) { }
 

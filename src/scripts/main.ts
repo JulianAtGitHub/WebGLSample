@@ -1,5 +1,5 @@
 import { LightInfo, TextureInfo, Converter } from "./converter";
-import { Painter } from "./painter";
+import { Renderer } from "./renderer";
 import { Model, CreateSkybox, CreateSphere } from "./model";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
@@ -37,7 +37,7 @@ function Main(canvasId: string) {
   }
 
   const converter = new Converter(gl);
-  const painter = new Painter(gl);
+  const renderer = new Renderer(gl);
 
   const preCompute = new PreCompute(converter);
   preCompute.image = "assets/newport_loft.hdr";
@@ -99,17 +99,17 @@ function Main(canvasId: string) {
     plasticSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
 
     if (preCompute.isReady) {
-      painter.Clear();
+      renderer.Clear();
 
       // scene 
       ironSphere.textures.irradianceMap = preCompute.irrMap;
       plasticSphere.textures.irradianceMap = preCompute.irrMap;
-      painter.Draw(camera, ironSphere, light, pbr);
-      painter.Draw(camera, plasticSphere, light, pbr);
+      renderer.Draw(camera, ironSphere, light, pbr);
+      renderer.Draw(camera, plasticSphere, light, pbr);
 
       // skybox
       box.textures.envMap = preCompute.envMap;
-      painter.Draw(camera, box, null, skybox);
+      renderer.Draw(camera, box, null, skybox);
     } else {
       preCompute.update();
     }

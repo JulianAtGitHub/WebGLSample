@@ -1,4 +1,5 @@
 import * as $ from "jquery";
+import * as _ from "lodash";
 import { HDRImage } from "./hdrpng";
 import { vec3 } from "gl-matrix";
 import { DataType, TextureType, Data } from "./model";
@@ -26,12 +27,36 @@ function IsPOT(value: number): boolean {
   return (value & (value - 1)) == 0;
 }
 
+const DependentedExts = [
+  "OES_standard_derivatives",
+  "OES_texture_float",
+  "OES_texture_float_linear"
+];
+
 export class GLSystem {
 
-  public constructor(private gl: WebGLRenderingContext) { }
+  private extensions: {[id: string]: any} = {};
+
+  private _isReliable: boolean = true;
+  public get isReliable(): boolean { return this._isReliable; }
+
+  public constructor(private gl: WebGLRenderingContext) {
+    _.map(DependentedExts, (ext) => {
+      !this.GetExtension(ext) && (this._isReliable = false);
+    });
+  }
 
   public get context(): WebGLRenderingContext {
     return this.gl;
+  }
+
+  public GetExtension(ext: string): any {
+    let extObj = this.extensions[ext];
+    if (!extObj) {
+      extObj = this.gl.getExtension(ext);
+      (extObj !== null) ? (this.extensions[ext] = extObj) : alert("Extension " + ext + " is not supported!");
+    }
+    return extObj;
   }
 
   // Initialize a texture and load an image.

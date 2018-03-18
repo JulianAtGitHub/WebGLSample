@@ -7,23 +7,6 @@ import { vec3 } from "gl-matrix";
 import * as Utils from "./utilities";
 import { PreCompute } from "./pre-compute";
 
-function EnableNeededExtensions(gl: WebGLRenderingContext): boolean {
-  if (!gl.getExtension('OES_standard_derivatives')) {
-    alert("OES_standard_derivatives is not supported!");
-    return false;
-  }
-  if (!gl.getExtension('OES_texture_float')) {
-    alert("OES_texture_float is not supported!");
-    return false;
-  }
-  if (!gl.getExtension('OES_texture_float_linear')) {
-    alert("OES_texture_float_linear is not supported!");
-    return false;
-  }
-
-  return true;
-}
-
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
   const gl = canvas.getContext("webgl");
@@ -32,11 +15,11 @@ function Main(canvasId: string) {
     return;
   }
 
-  if (EnableNeededExtensions(gl) === false) {
+  const glSystem = new GLSystem(gl);
+  if (!glSystem.isReliable) {
     return;
   }
 
-  const glSystem = new GLSystem(gl);
   const renderer = new Renderer(glSystem);
 
   const preCompute = new PreCompute(glSystem);

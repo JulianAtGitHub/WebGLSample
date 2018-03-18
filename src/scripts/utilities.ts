@@ -1,9 +1,9 @@
 import { DataType, TextureType } from "./model";
-import { Converter } from "./converter";
+import { GLSystem } from "./gl-system";
 import { Program } from "./program";
 
-export function CreatePhoneProgram(converter: Converter): Program {
-  const program = new Program(converter, {
+export function CreatePhoneProgram(glSystem: GLSystem): Program {
+  const program = new Program(glSystem, {
     vertFile: "assets/phong.vs",
     fragFile: "assets/phong.fs",
     attributes: {
@@ -28,8 +28,8 @@ export function CreatePhoneProgram(converter: Converter): Program {
   return program;
 }
 
-export function CreateSkyboxProgram(converter: Converter): Program {
-  const program = new Program(converter, {
+export function CreateSkyboxProgram(glSystem: GLSystem): Program {
+  const program = new Program(glSystem, {
     vertFile: "assets/skybox.vs",
     fragFile: "assets/skybox.fs",
     attributes: {
@@ -49,8 +49,8 @@ export function CreateSkyboxProgram(converter: Converter): Program {
   return program;
 }
 
-export function CreatePbrProgram(converter: Converter): Program {
-  const program = new Program(converter, {
+export function CreatePbrProgram(glSystem: GLSystem): Program {
+  const program = new Program(glSystem, {
     vertFile: "assets/pbr.vs",
     fragFile: "assets/pbr.fs",
     attributes: {

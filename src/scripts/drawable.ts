@@ -1,7 +1,7 @@
 import * as _ from "lodash";
 import { vec3, mat4, mat3 } from "gl-matrix";
 import { IndexMode, Data, Model } from "./model";
-import { TextureInfo, BufferInfo, Converter} from "./converter";
+import { TextureInfo, BufferInfo, GLSystem} from "./gl-system";
 
 export class Drawable {
   public buffers: {[id: string]: BufferInfo};
@@ -21,16 +21,16 @@ export class Drawable {
 
   private _isDirty: boolean;
 
-  constructor(model: Model, converter: Converter) {
+  constructor(model: Model, glSystem: GLSystem) {
     this._position = vec3.fromValues(0.0, 0.0, 0.0);
     this._rotation = vec3.fromValues(0.0, 0.0, 0.0);
     this._scale = vec3.fromValues(1.0, 1.0, 1.0);
 
     this.buffers = {};
-    this.LoadBuffers(model, converter);
+    this.LoadBuffers(model, glSystem);
 
     this.textures = {};
-    this.LoadTextures(model, converter);
+    this.LoadTextures(model, glSystem);
 
     this.values = {};
     this.CopyMaterialValues(model);
@@ -38,47 +38,47 @@ export class Drawable {
     this._isDirty = true;
   }
 
-  private LoadBuffers(model: Model, converter: Converter) {
-    if (!model || !converter) {
+  private LoadBuffers(model: Model, glSystem: GLSystem) {
+    if (!model || !glSystem) {
       return;
     }
 
-    if (model.positions) { this.buffers.positions = this.LoadBuffer(model.positions, converter, {isElement: false}); }
-    if (model.normals) { this.buffers.normals = this.LoadBuffer(model.normals, converter, {isElement: false}); }
-    if (model.texCoords) { this.buffers.texCoords = this.LoadBuffer(model.texCoords, converter, {isElement: false}); }
-    if (model.colors) { this.buffers.colors = this.LoadBuffer(model.colors, converter, {isElement: false}); }
-    if (model.indices) { this.buffers.indices = this.LoadBuffer(model.indices, converter, {isElement: true}); }
+    if (model.positions) { this.buffers.positions = this.LoadBuffer(model.positions, glSystem, {isElement: false}); }
+    if (model.normals) { this.buffers.normals = this.LoadBuffer(model.normals, glSystem, {isElement: false}); }
+    if (model.texCoords) { this.buffers.texCoords = this.LoadBuffer(model.texCoords, glSystem, {isElement: false}); }
+    if (model.colors) { this.buffers.colors = this.LoadBuffer(model.colors, glSystem, {isElement: false}); }
+    if (model.indices) { this.buffers.indices = this.LoadBuffer(model.indices, glSystem, {isElement: true}); }
     this._indexMode = model.indexMode;
   }
 
-  private LoadBuffer(data: Data, converter: Converter, options: {isElement: boolean}): BufferInfo {
-    if (!data || !converter) {
+  private LoadBuffer(data: Data, glSystem: GLSystem, options: {isElement: boolean}): BufferInfo {
+    if (!data || !glSystem) {
       return null;
     }
 
     const bufferInfo = {
       rawData: data.data,
       rawDataType: data.type,
-      buffer: options.isElement ? converter.CreateElementBuffer(data) : converter.CreateBuffer(data)
+      buffer: options.isElement ? glSystem.CreateElementBuffer(data) : glSystem.CreateBuffer(data)
     };
 
     return bufferInfo;
   }
 
-  private LoadTextures(model: Model, converter: Converter) {
-    if (!model || !converter) {
+  private LoadTextures(model: Model, glSystem: GLSystem) {
+    if (!model || !glSystem) {
       return;
     }
 
-    if (model.normalMap) { this.textures.normalMap = converter.CreateTexture(model.normalMap); }
+    if (model.normalMap) { this.textures.normalMap = glSystem.CreateTexture(model.normalMap); }
 
-    if (model.diffuseMap) { this.textures.diffuseMap = converter.CreateTexture(model.diffuseMap); }
-    if (model.specularMap) { this.textures.specularMap = converter.CreateTexture(model.specularMap); }
+    if (model.diffuseMap) { this.textures.diffuseMap = glSystem.CreateTexture(model.diffuseMap); }
+    if (model.specularMap) { this.textures.specularMap = glSystem.CreateTexture(model.specularMap); }
 
-    if (model.albedoMap) { this.textures.albedoMap = converter.CreateTexture(model.albedoMap); }
-    if (model.metallicMap) { this.textures.metallicMap = converter.CreateTexture(model.metallicMap); }
-    if (model.roughnessMap) { this.textures.roughnessMap = converter.CreateTexture(model.roughnessMap); }
-    if (model.aoMap) { this.textures.aoMap = converter.CreateTexture(model.aoMap); }
+    if (model.albedoMap) { this.textures.albedoMap = glSystem.CreateTexture(model.albedoMap); }
+    if (model.metallicMap) { this.textures.metallicMap = glSystem.CreateTexture(model.metallicMap); }
+    if (model.roughnessMap) { this.textures.roughnessMap = glSystem.CreateTexture(model.roughnessMap); }
+    if (model.aoMap) { this.textures.aoMap = glSystem.CreateTexture(model.aoMap); }
   }
 
   private CopyMaterialValues(model: Model) {

@@ -1,4 +1,4 @@
-import { LightInfo, TextureInfo, Converter } from "./converter";
+import { LightInfo, TextureInfo, GLSystem } from "./gl-system";
 import { Renderer } from "./renderer";
 import { Model, CreateSkybox, CreateSphere } from "./model";
 import { Drawable } from "./drawable";
@@ -36,14 +36,14 @@ function Main(canvasId: string) {
     return;
   }
 
-  const converter = new Converter(gl);
-  const renderer = new Renderer(gl);
+  const glSystem = new GLSystem(gl);
+  const renderer = new Renderer(glSystem);
 
-  const preCompute = new PreCompute(converter);
+  const preCompute = new PreCompute(glSystem);
   preCompute.image = "assets/newport_loft.hdr";
 
-  const pbr = Utils.CreatePbrProgram(converter);
-  const skybox = Utils.CreateSkyboxProgram(converter);
+  const pbr = Utils.CreatePbrProgram(glSystem);
+  const skybox = Utils.CreateSkyboxProgram(glSystem);
 
   const light: LightInfo = {
     position: vec3.fromValues(75.0, 75.0, 100.0), 
@@ -60,7 +60,7 @@ function Main(canvasId: string) {
   ironSphereModel.roughnessMap = "assets/iron_roughness.png";
   ironSphereModel.aoMap = "assets/iron_ao.png";
 
-  const ironSphere = new Drawable(ironSphereModel, converter);
+  const ironSphere = new Drawable(ironSphereModel, glSystem);
   ironSphere.move([1.5, 0.0, -6.0]);
 
   const plasticSphereModel = CreateSphere();
@@ -70,11 +70,11 @@ function Main(canvasId: string) {
   plasticSphereModel.roughnessMap = "assets/plastic_roughness.png";
   plasticSphereModel.aoMap = "assets/plastic_ao.png";
 
-  const plasticSphere = new Drawable(plasticSphereModel, converter);
+  const plasticSphere = new Drawable(plasticSphereModel, glSystem);
   plasticSphere.move([-1.5, 0.0, -6.0]);
 
   const boxModel = CreateSkybox();
-  const box = new Drawable(boxModel, converter);
+  const box = new Drawable(boxModel, glSystem);
 
   // const metallicSlider: any = document.getElementById("metallic");
   // metallicSlider.oninput = () => {

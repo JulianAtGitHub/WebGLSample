@@ -22,11 +22,11 @@ export interface BufferInfo {
 }
 
 // return value is power of two
-function IsPOT(value: number) {
+function IsPOT(value: number): boolean {
   return (value & (value - 1)) == 0;
 }
 
-export class Converter {
+export class GLSystem {
 
   public constructor(private gl: WebGLRenderingContext) { }
 

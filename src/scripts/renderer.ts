@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { mat4, vec3 } from "gl-matrix";
-import { LightInfo, TextureInfo, BufferInfo } from "./converter";
+import { LightInfo, TextureInfo, BufferInfo, GLSystem } from "./gl-system";
 import { Program } from "./program";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
@@ -8,14 +8,14 @@ import { IndexMode, DataType, TextureType } from "./model";
 
 export class Renderer {
 
-  public constructor(private gl: WebGLRenderingContext) { }
+  public constructor(private glSystem: GLSystem) { }
 
   private SetupOtherUniforms(camera: Camera, drawable: Drawable, light: LightInfo, program: Program): void {
     if (!camera || !drawable || !program) {
       return;
     }
 
-    const gl = this.gl;
+    const gl = this.glSystem.context;
     _.map(program.uniformNames, (name: string) => {
       const id = name.substring(2);
 
@@ -96,7 +96,7 @@ export class Renderer {
   }
 
   public Clear() {
-    const gl = this.gl;
+    const gl = this.glSystem.context;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
     gl.clearDepth(1.0);                 // Clear everything
@@ -112,7 +112,7 @@ export class Renderer {
       return;
     }
 
-    const gl = this.gl;
+    const gl = this.glSystem.context;
 
     // Tell WebGL to use our program when drawing
     program.Use();

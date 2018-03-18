@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { vec3, mat4 } from "gl-matrix";
-import { TextureInfo, Converter } from "./converter";
+import { TextureInfo, GLSystem } from "./gl-system";
 import { Program } from "./program";
 import { DataType, TextureType, CreateSkybox } from "./model";
 import { Drawable } from "./drawable";
@@ -99,7 +99,7 @@ export class PreCompute {
   private captureFBO: WebGLFramebuffer;
   private captureRBO: WebGLRenderbuffer;
 
-  public constructor(private converter: Converter) {
+  public constructor(private glSystem: GLSystem) {
     this.unitCube = null;
     this.shpereMap = null;
     this.rad2envProgram = null;
@@ -107,7 +107,7 @@ export class PreCompute {
     this.envSize = 512;
     this.irrSize = 32;
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
     this.cubemapTargets = [
       gl.TEXTURE_CUBE_MAP_POSITIVE_X,
       gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -159,7 +159,7 @@ export class PreCompute {
 
   public set image(image: string) {
     this.state = State.LoadRadianceTexture;
-    this.shpereMap = this.converter.CreateRadianceHDRTexture(image);
+    this.shpereMap = this.glSystem.CreateRadianceHDRTexture(image);
   }
 
   public update() {
@@ -180,7 +180,7 @@ export class PreCompute {
   }
 
   private ClearCubemap() {
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
     if (this.envCubeMap) { gl.deleteTexture(this.envCubeMap); }
     if (this.irrCubeMap) { gl.deleteTexture(this.irrCubeMap); }
     this.envCubeMap = null;
@@ -190,10 +190,10 @@ export class PreCompute {
   private PrepareRenderObjects() {
     this.state = State.PrepareRenderObjects;
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     // create shader program
-    this.rad2envProgram = new Program(this.converter, {
+    this.rad2envProgram = new Program(this.glSystem, {
       vertFile: undefined,
       fragFile: undefined,
       vertSource: rad2envShader.vertSource,
@@ -205,7 +205,7 @@ export class PreCompute {
       }
     });
 
-    this.env2irrProgram = new Program(this.converter, {
+    this.env2irrProgram = new Program(this.glSystem, {
       vertFile: undefined,
       fragFile: undefined,
       vertSource: env2irrShader.vertSource,
@@ -219,7 +219,7 @@ export class PreCompute {
 
     // load model
     const cube = CreateSkybox();
-    this.unitCube = new Drawable(cube, this.converter);
+    this.unitCube = new Drawable(cube, this.glSystem);
   }
 
   private RenderToEnvCubemap() {
@@ -227,7 +227,7 @@ export class PreCompute {
 
     this.ClearCubemap();
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     this.captureFBO = gl.createFramebuffer();
     this.captureRBO = gl.createRenderbuffer();
@@ -295,7 +295,7 @@ export class PreCompute {
   }
 
   private RenderToIrrCubemap() {
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
     gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);

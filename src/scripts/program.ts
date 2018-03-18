@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { DataType, TextureType } from "./model";
-import { Converter } from "./converter";
+import { GLSystem } from "./gl-system";
 
 const ErrorLocation = -1;
 
@@ -38,14 +38,14 @@ export class Program {
   private uniforms: {[id: string]: ShaderUniform} = {};
   private samplers: {[id: string]: ShaderTexture} = {};
 
-  constructor(private converter: Converter, parameters: ProgramParameters) {
+  constructor(private glSystem: GLSystem, parameters: ProgramParameters) {
     if (parameters.vertFile && parameters.fragFile) {
-      this.converter.CreateProgramFromFile(parameters.vertFile, parameters.fragFile, (program: WebGLProgram) => {
+      this.glSystem.CreateProgramFromFile(parameters.vertFile, parameters.fragFile, (program: WebGLProgram) => {
         this.glProgram = program;
         this.GetParameters(parameters);
       });
     } else {
-      this.glProgram = this.converter.CreateProgram(parameters.vertSource, parameters.fragSource);
+      this.glProgram = this.glSystem.CreateProgram(parameters.vertSource, parameters.fragSource);
       this.GetParameters(parameters);
     }
   }
@@ -55,7 +55,7 @@ export class Program {
       return;
     }
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     // get attributes
     if (parameters.attributes) {
@@ -113,7 +113,7 @@ export class Program {
       return;
     }
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
     gl.useProgram(this.glProgram);
   }
 
@@ -133,7 +133,7 @@ export class Program {
       return;
     }
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     let numComponents = 0;  // pull out 2 values per iteration
     const type = gl.FLOAT;    // the data in the buffer is 32bit floats
@@ -170,7 +170,7 @@ export class Program {
       return;
     }
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     switch(sampler.index) {
       case 0: gl.activeTexture(gl.TEXTURE0); break;
@@ -207,7 +207,7 @@ export class Program {
       return;
     }
 
-    const gl = this.converter.context;
+    const gl = this.glSystem.context;
 
     switch(uniform.type) {
       case DataType.Float4x4: gl.uniformMatrix4fv(uniform.location, false, value); break;

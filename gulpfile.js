@@ -45,7 +45,7 @@ gulp.task("default", ["copy-htmls", "copy-assets"], function () {
 gulp.task('run-server', function() {
   var options = {
     root: './dist',
-    port: 8000
+    port: 8001
   };
   connect.server(options);
 });

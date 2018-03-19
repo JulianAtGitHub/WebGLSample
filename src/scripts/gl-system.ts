@@ -23,11 +23,12 @@ export interface BufferInfo {
 }
 
 // return value is power of two
-function IsPOT(value: number): boolean {
+export function IsPOT(value: number): boolean {
   return (value & (value - 1)) == 0;
 }
 
 const DependentedExts = [
+  "EXT_shader_texture_lod",
   "OES_standard_derivatives",
   "OES_texture_float",
   "OES_texture_float_linear"

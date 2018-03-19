@@ -2,7 +2,7 @@ import * as _ from "lodash";
 import { vec3, mat4 } from "gl-matrix";
 import { TextureInfo, GLSystem, IsPOT } from "./gl-system";
 import { Program } from "./program";
-import { DataType, TextureType, CreateSkybox } from "./model";
+import { DataType, TextureType, CreateSkybox, CreateQuad } from "./model";
 import { Drawable } from "./drawable";
 
 enum State {
@@ -11,6 +11,7 @@ enum State {
   ConvertToEnvironmentMap,
   CalculateIrradianceMap,
   CalculatePreFilterMap,
+  GenerateBRDFLookUpMap,
   Finished
 }
 
@@ -18,18 +19,22 @@ export class PreCompute {
 
   private state: State;
   private unitCube: Drawable;
+  private unitQuad: Drawable;
 
   private rad2envProgram: Program;
   private env2irrProgram: Program;
   private env2filProgram: Program;
+  private brdfGenProgram: Program;
 
   private envSize: number;
   private irrSize: number;
   private filSize: number;
+  private lutSize: number;
 
   private envCubeMap: WebGLTexture;
   private irrCubeMap: WebGLTexture;
   private filCubeMap: WebGLTexture;
+  private brdfLutMap: WebGLTexture;
 
   private cubemapTargets: number[];
   private viewProjMatrixes: mat4[];
@@ -46,14 +51,17 @@ export class PreCompute {
     this.rad2envProgram = null;
     this.env2irrProgram = null;
     this.env2filProgram = null;
+    this.brdfGenProgram = null;
 
     this.envSize = 512;
     this.irrSize = 32;
     this.filSize = 128;
+    this.lutSize = 512;
 
     this.envCubeMap = null;
     this.irrCubeMap = null;
     this.filCubeMap = null;
+    this.brdfLutMap = null;
 
     const gl = this.glSystem.context;
     this.cubemapTargets = [
@@ -112,6 +120,15 @@ export class PreCompute {
     }; 
   }
 
+  public get brdfMap(): TextureInfo {
+    return {
+      texture: this.brdfLutMap,
+      type: TextureType.Texture2D,
+      width: this.lutSize,
+      height: this.lutSize
+    }; 
+  }
+
   public set image(image: string) {
     this.state = State.LoadRadianceTexture;
     this.shpereMap = this.glSystem.CreateRadianceHDRTexture(image);
@@ -137,6 +154,13 @@ export class PreCompute {
       case State.CalculatePreFilterMap: {
         if (this.env2filProgram.isReady) {
           this.RenderToPreFilterMap();
+        }
+        break;
+      }
+
+      case State.GenerateBRDFLookUpMap: {
+        if (this.brdfGenProgram.isReady) {
+          this.RenderToBDRFMap();
         }
         break;
       }
@@ -194,9 +218,22 @@ export class PreCompute {
       }
     });
 
+    this.brdfGenProgram = new Program(this.glSystem, {
+      vertFile: "assets/shaders/pre-computer/brdf.vs",
+      fragFile: "assets/shaders/pre-computer/brdf.fs",
+      attributes: { 
+        "a_position": DataType.Float3,
+        "a_texCoord": DataType.Float2 
+      },
+      uniforms: { textures: { }, others: { } }
+    });
+
     // load model
     const cube = CreateSkybox();
     this.unitCube = new Drawable(cube, this.glSystem);
+
+    const quad = CreateQuad();
+    this.unitQuad = new Drawable(quad, this.glSystem);
   }
 
   private CreateCubeMap(size: number, mipmap: boolean = false): WebGLTexture {
@@ -313,8 +350,6 @@ export class PreCompute {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
-    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
     this.state = State.CalculatePreFilterMap;
   }
 
@@ -397,7 +432,53 @@ export class PreCompute {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
+    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    this.state = State.GenerateBRDFLookUpMap;
+  }
+
+  private RenderToBDRFMap() {
+    const gl = this.glSystem.context;
+
+    // generate a 2d texture
+    this.brdfLutMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.brdfLutMap);
+
+    const level = 0;
+    const internalFormat = gl.RGB;
+    const border = 0;
+    const srcFormat = gl.RGB;
+    const srcType = gl.FLOAT;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, this.lutSize, this.lutSize, border, srcFormat, srcType, null);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.lutSize, this.lutSize);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.brdfLutMap, 0);
+
+    gl.viewport(0, 0, this.lutSize, this.lutSize);
+
+    this.brdfGenProgram.Use();
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const positions = this.unitQuad.buffers.positions;
+    this.brdfGenProgram.SetAttribute("a_position", positions.buffer, positions.rawDataType);
+    const texCoords = this.unitQuad.buffers.texCoords;
+    this.brdfGenProgram.SetAttribute("a_texCoord", texCoords.buffer, texCoords.rawDataType);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    this.DeleteTempObjects();
 
     this.state = State.Finished;
   }

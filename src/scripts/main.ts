@@ -30,7 +30,7 @@ function Main(canvasId: string) {
 
   const light: LightInfo = {
     position: vec3.fromValues(75.0, 75.0, 100.0), 
-    color: vec3.fromValues(500.0, 500.0, 500.0)
+    color: vec3.fromValues(300.0, 300.0, 300.0)
   };
 
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
@@ -77,6 +77,7 @@ function Main(canvasId: string) {
   // };
 
   let then = 0;
+  let pbrImageSetted = false;
   // Draw the scene repeatedly
   const render = (now: number) => {
     now *= 0.001;  // convert to seconds
@@ -87,21 +88,22 @@ function Main(canvasId: string) {
     plasticSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
 
     if (preCompute.isReady) {
+      if (!pbrImageSetted) {
+        ironSphere.textures.irradianceMap = preCompute.irrMap;
+        ironSphere.textures.prefilterMap = preCompute.filMap;
+        ironSphere.textures.brdfMap = preCompute.brdfMap;
+        plasticSphere.textures.irradianceMap = preCompute.irrMap;
+        plasticSphere.textures.prefilterMap = preCompute.filMap;
+        plasticSphere.textures.brdfMap = preCompute.brdfMap;
+        box.textures.envMap = preCompute.envMap;
+        pbrImageSetted = true;
+      }
+
       renderer.Clear();
-
       // scene 
-      ironSphere.textures.irradianceMap = preCompute.irrMap;
-      ironSphere.textures.prefilterMap = preCompute.filMap;
-      ironSphere.textures.brdfMap = preCompute.brdfMap;
       renderer.Draw(camera, ironSphere, light, pbr);
-
-      plasticSphere.textures.irradianceMap = preCompute.irrMap;
-      plasticSphere.textures.prefilterMap = preCompute.filMap;
-      plasticSphere.textures.brdfMap = preCompute.brdfMap;
       renderer.Draw(camera, plasticSphere, light, pbr);
-
       // skybox
-      box.textures.envMap = preCompute.envMap;
       renderer.Draw(camera, box, null, skybox);
 
       // debug

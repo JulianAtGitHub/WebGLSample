@@ -53,6 +53,7 @@ export function CreatePbrProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
     vertFile: "assets/shaders/pbr.vs",
     fragFile: "assets/shaders/pbr.fs",
+    macros: ["#define HAS_PBR_TEXTURES"],
     attributes: {
       "a_position": DataType.Float3,
       "a_normal": DataType.Float3,
@@ -76,6 +77,39 @@ export function CreatePbrProgram(glSystem: GLSystem): Program {
         "u_viewPos": DataType.Float3,
         "u_lightPos": DataType.Float3,
         "u_lightColor": DataType.Float3
+      }
+    }
+  });
+
+  return program;
+}
+
+export function CreatePbrNoTexturedProgram(glSystem: GLSystem): Program {
+  const program = new Program(glSystem, {
+    vertFile: "assets/shaders/pbr.vs",
+    fragFile: "assets/shaders/pbr.fs",
+    attributes: {
+      "a_position": DataType.Float3,
+      "a_normal": DataType.Float3,
+      "a_texCoord": DataType.Float2
+    },
+    uniforms: {
+      textures: {
+        "u_irradianceMap": TextureType.TextureCubeMap,
+        "u_prefilterMap": TextureType.TextureCubeMap,
+        "u_brdfMap": TextureType.Texture2D
+      },
+      others: {
+        "u_modelMatrix": DataType.Float4x4,
+        "u_normalMatrix": DataType.Float3x3,
+        "u_viewProjMatrix": DataType.Float4x4,
+        "u_viewPos": DataType.Float3,
+        "u_lightPos": DataType.Float3,
+        "u_lightColor": DataType.Float3,
+        "u_albedo": DataType.Float3,
+        "u_metallic": DataType.Float,
+        "u_roughness": DataType.Float,
+        "u_ao": DataType.Float,
       }
     }
   });

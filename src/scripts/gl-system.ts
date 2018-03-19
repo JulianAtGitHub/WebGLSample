@@ -194,10 +194,18 @@ export class GLSystem {
     return shader;
   }
 
-  public CreateProgram(vsSource: string, fsSource: string): WebGLProgram {
+  public CreateProgram(vsSource: string, fsSource: string, macros: string[]): WebGLProgram {
     const gl = this.gl;
-    const vertexShader = this.LoadShader(vsSource, gl.VERTEX_SHADER);
-    const fragmentShader = this.LoadShader(fsSource, gl.FRAGMENT_SHADER);
+
+    let preprocessor = "";
+    if (macros.length > 0) {
+      _.map(macros, (macro: string) => {
+        preprocessor += `${macro} \n`;
+      });
+    }
+
+    const vertexShader = this.LoadShader(preprocessor + vsSource, gl.VERTEX_SHADER);
+    const fragmentShader = this.LoadShader(preprocessor + fsSource, gl.FRAGMENT_SHADER);
   
     // Create the shader program
     const shaderProgram = gl.createProgram();
@@ -214,7 +222,7 @@ export class GLSystem {
     return shaderProgram;
   }
 
-  public CreateProgramFromFile(vsFile: string, fsFile: string, complete: (program: WebGLProgram) => void): void {
+  public CreateProgramFromFile(vsFile: string, fsFile: string, macros: string[], complete: (program: WebGLProgram) => void): void {
     const vertDeferred = $.ajax({
       url: vsFile,
       dataType: 'text',
@@ -232,7 +240,7 @@ export class GLSystem {
       }
     });
     $.when(vertDeferred, fragDeferred).then((vsSource, fsSource) => {
-      const program = this.CreateProgram(vsSource[0], fsSource[0]);
+      const program = this.CreateProgram(vsSource[0], fsSource[0], macros);
       complete && complete(program);
     });
   }

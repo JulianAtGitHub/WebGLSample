@@ -7,11 +7,18 @@ varying vec3 v_normal;
 varying vec2 v_texCoord;
 
 // material
+#ifdef HAS_PBR_TEXTURES
 uniform sampler2D u_normalMap;
 uniform sampler2D u_albedoMap;
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
 uniform sampler2D u_aoMap;
+#else
+uniform vec3 u_albedo;
+uniform float u_metallic;
+uniform float u_roughness;
+uniform float u_ao;
+#endif
 
 // IBL
 uniform samplerCube u_irradianceMap;
@@ -27,6 +34,7 @@ uniform vec3 u_viewPos;
 const float PI = 3.14159265359;
 const float MAX_REFLECTION_LOD = 4.0;
 
+#ifdef HAS_PBR_TEXTURES
 // Easy trick to get tangent-normals to world-space to keep PBR code simplified.
 vec3 NormalFromTexture() {
   vec3 tangentNormal = texture2D(u_normalMap, v_texCoord).xyz * 2.0 - 1.0;
@@ -43,6 +51,7 @@ vec3 NormalFromTexture() {
 
   return normalize(TBN * tangentNormal);
 }
+#endif
 
 vec3 HDRToneMapping(vec3 color) {
   return color / (color + vec3(1.0));
@@ -95,13 +104,21 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 f0, float roughness) {
 }
 
 void main(void) {
+#ifdef HAS_PBR_TEXTURES
   vec3 albedo = pow(texture2D(u_albedoMap, v_texCoord).rgb, vec3(2.2));
   float metallic = texture2D(u_metallicMap, v_texCoord).r;
   float roughness = texture2D(u_roughnessMap, v_texCoord).r;
   float ao = texture2D(u_aoMap, v_texCoord).r;
 
   vec3 N = NormalFromTexture();
-  // vec3 N = normalize(v_normal);
+#else
+  vec3 albedo = u_albedo;
+  float metallic = u_metallic;
+  float roughness = u_roughness;
+  float ao = u_ao;
+
+  vec3 N = normalize(v_normal);
+#endif
   vec3 V = normalize(u_viewPos - v_position);
   vec3 R = reflect(-V, N);
 
@@ -123,7 +140,7 @@ void main(void) {
   {
     // calculate light radiance
     float distance = length(u_lightPos - v_position);
-    float attenuation = 1.0 / (distance);
+    float attenuation = 1.0 / (distance * distance);
     vec3 radiance = u_lightColor * attenuation;
 
     // BRDF of Cook-Torrance
@@ -148,7 +165,7 @@ void main(void) {
   }
 
   // calculate ambient
-  vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, roughness);
+  vec3 F = FresnelSchlickRoughness(NdotV, f0, roughness);
 
   // diffuse
   vec3 kS = F;

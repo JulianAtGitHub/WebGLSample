@@ -25,6 +25,7 @@ export interface ProgramParameters {
   fragFile: string;
   vertSource?: string;
   fragSource?: string;
+  macros?: string[];
   attributes?: {[id: string]: DataType};
   uniforms?: {
     textures?: {[id: string]: TextureType};
@@ -39,13 +40,14 @@ export class Program {
   private samplers: {[id: string]: ShaderTexture} = {};
 
   constructor(private glSystem: GLSystem, parameters: ProgramParameters) {
+    if (!parameters.macros) { parameters.macros = []; }
     if (parameters.vertFile && parameters.fragFile) {
-      this.glSystem.CreateProgramFromFile(parameters.vertFile, parameters.fragFile, (program: WebGLProgram) => {
+      this.glSystem.CreateProgramFromFile(parameters.vertFile, parameters.fragFile, parameters.macros, (program: WebGLProgram) => {
         this.glProgram = program;
         this.GetParameters(parameters);
       });
     } else {
-      this.glProgram = this.glSystem.CreateProgram(parameters.vertSource, parameters.fragSource);
+      this.glProgram = this.glSystem.CreateProgram(parameters.vertSource, parameters.fragSource, parameters.macros);
       this.GetParameters(parameters);
     }
   }

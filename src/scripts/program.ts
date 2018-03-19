@@ -179,6 +179,16 @@ export class Program {
       case 3: gl.activeTexture(gl.TEXTURE3); break;
       case 4: gl.activeTexture(gl.TEXTURE4); break;
       case 5: gl.activeTexture(gl.TEXTURE5); break;
+      case 6: gl.activeTexture(gl.TEXTURE6); break;
+      case 7: gl.activeTexture(gl.TEXTURE7); break;
+      case 8: gl.activeTexture(gl.TEXTURE8); break;
+      case 9: gl.activeTexture(gl.TEXTURE9); break;
+      case 10: gl.activeTexture(gl.TEXTURE10); break;
+      case 11: gl.activeTexture(gl.TEXTURE11); break;
+      case 12: gl.activeTexture(gl.TEXTURE12); break;
+      case 13: gl.activeTexture(gl.TEXTURE13); break;
+      case 14: gl.activeTexture(gl.TEXTURE14); break;
+      case 15: gl.activeTexture(gl.TEXTURE15); break;
       default: console.error("Invalid texture location."); break;
     }
 

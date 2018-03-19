@@ -65,7 +65,9 @@ export function CreatePbrProgram(glSystem: GLSystem): Program {
         "u_metallicMap": TextureType.Texture2D,
         "u_roughnessMap": TextureType.Texture2D,
         "u_aoMap": TextureType.Texture2D,
-        "u_irradianceMap": TextureType.TextureCubeMap
+        "u_irradianceMap": TextureType.TextureCubeMap,
+        "u_prefilterMap": TextureType.TextureCubeMap,
+        "u_brdfMap": TextureType.Texture2D
       },
       others: {
         "u_modelMatrix": DataType.Float4x4,

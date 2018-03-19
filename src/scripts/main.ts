@@ -91,8 +91,13 @@ function Main(canvasId: string) {
 
       // scene 
       ironSphere.textures.irradianceMap = preCompute.irrMap;
-      plasticSphere.textures.irradianceMap = preCompute.irrMap;
+      ironSphere.textures.prefilterMap = preCompute.filMap;
+      ironSphere.textures.brdfMap = preCompute.brdfMap;
       renderer.Draw(camera, ironSphere, light, pbr);
+
+      plasticSphere.textures.irradianceMap = preCompute.irrMap;
+      plasticSphere.textures.prefilterMap = preCompute.filMap;
+      plasticSphere.textures.brdfMap = preCompute.brdfMap;
       renderer.Draw(camera, plasticSphere, light, pbr);
 
       // skybox

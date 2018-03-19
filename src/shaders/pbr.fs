@@ -1,4 +1,5 @@
 #extension GL_OES_standard_derivatives : enable
+#extension GL_EXT_shader_texture_lod : enable
 precision mediump float;
 
 varying vec3 v_position;
@@ -14,6 +15,8 @@ uniform sampler2D u_aoMap;
 
 // IBL
 uniform samplerCube u_irradianceMap;
+uniform samplerCube u_prefilterMap;
+uniform sampler2D u_brdfMap;
 
 // light
 uniform vec3 u_lightPos;
@@ -22,6 +25,7 @@ uniform vec3 u_lightColor;
 uniform vec3 u_viewPos;
 
 const float PI = 3.14159265359;
+const float MAX_REFLECTION_LOD = 4.0;
 
 // Easy trick to get tangent-normals to world-space to keep PBR code simplified.
 vec3 NormalFromTexture() {
@@ -99,6 +103,7 @@ void main(void) {
   vec3 N = NormalFromTexture();
   // vec3 N = normalize(v_normal);
   vec3 V = normalize(u_viewPos - v_position);
+  vec3 R = reflect(-V, N);
 
   vec3 L = normalize(u_lightPos - v_position);
   vec3 H = normalize(V + L);
@@ -143,12 +148,21 @@ void main(void) {
   }
 
   // calculate ambient
-  vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, roughness);
+  vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, roughness);
+
+  // diffuse
+  vec3 kS = F;
   vec3 kD = vec3(1.0) - kS;
   kD *= 1.0 - metallic;
   vec3 irradiance = textureCube(u_irradianceMap, N).rgb;
   vec3 diffuse = irradiance * albedo;
-  vec3 ambient = (kD * diffuse) * ao;
+
+  // specular
+  vec3 perfilteredColor = textureCubeLodEXT(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+  vec2 brdf = texture2D(u_brdfMap, vec2(NdotV, roughness)).rg;
+  vec3 specular = perfilteredColor * (F * brdf.x + brdf.y);
+
+  vec3 ambient = (kD * diffuse + specular) * ao;
 
   // sum components value
   vec3 color = ambient + Lo;

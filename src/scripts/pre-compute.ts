@@ -456,6 +456,8 @@ export class PreCompute {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
     gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.lutSize, this.lutSize);

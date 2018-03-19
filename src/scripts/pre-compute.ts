@@ -5,74 +5,6 @@ import { Program } from "./program";
 import { DataType, TextureType, CreateSkybox } from "./model";
 import { Drawable } from "./drawable";
 
-// Spherical map to cubic map
-const rad2envShader = {
-  vertSource: `
-  attribute vec3 a_position;
-  uniform mat4 u_viewProjMatrix;
-  varying vec3 v_position;
-  void main(void) {
-    v_position = a_position;
-    gl_Position = u_viewProjMatrix * vec4(a_position, 1.0);
-  }`,
-
-  fragSource: `
-  precision mediump float;
-  varying vec3 v_position;
-  uniform sampler2D u_sphereMap;
-  const vec2 invAtan = vec2(0.1591, 0.3183);
-  vec2 SampleSphereMap(vec3 v) {
-    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
-    uv *= invAtan;
-    uv += 0.5;
-    return uv;
-  }
-  void main(void) {
-    vec2 uv = SampleSphereMap(normalize(v_position));
-    // vec3 color = texture2D(u_sphereMap, uv).rgb;
-    vec3 color = texture2D(u_sphereMap, vec2(uv.x, 1.0 - uv.y)).rgb;
-    gl_FragColor = vec4(color, 1.0);
-  }`
-};
-
-const env2irrShader = {
-  vertSource: rad2envShader.vertSource,
-  fragSource: `
-  precision mediump float;
-  varying vec3 v_position;
-  uniform samplerCube u_envMap;
-  const float PI = 3.14159265359;
-  const float PI_2 = 1.570796326795; // PI / 2.0
-  const float PI2 = 6.28318530718;  // PI * 2.0
-  const float sampleDelta = 0.025;
-  void main(void) {
-    // The world vector acts as the normal of a tangent surface from the origin, aligned to vPosition. 
-    // Given this normal, calculate all incoming radiance of the environment. 
-    // The result of this radiance is the radiance of light coming from -Normal direction, 
-    // which is what we use in the PBR shader to sample irradiance.
-    vec3 N = normalize(v_position);
-    vec3 irradiance = vec3(0.0);
-    // tangent sapce calculation from origin point
-    vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 right = cross(up, N);
-    up = cross(N, right);
-    // calculation irradiance
-    float nrSamples = 0.0;
-    for (float phi = 0.0; phi < PI2; phi += sampleDelta) {
-      for (float theta = 0.0; theta < PI_2; theta += sampleDelta) {
-        vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
-        vec3 worldSample = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
-        irradiance += textureCube(u_envMap, worldSample).rgb * cos(theta) * sin(theta);
-        nrSamples += 1.0;
-      }
-    }
-    irradiance = PI * irradiance * (1.0 / nrSamples);
-    gl_FragColor = vec4(irradiance, 1.0);
-  }
-  `
-};
-
-
 enum State {
   PrepareRenderObjects,
   LoadRadianceTexture,
@@ -165,13 +97,16 @@ export class PreCompute {
   public update() {
     switch (this.state) {
       case State.LoadRadianceTexture: {
-        if (this.shpereMap && this.shpereMap.texture) {
+        if (this.shpereMap && this.shpereMap.texture
+            && this.rad2envProgram.isReady) {
           this.RenderToEnvCubemap();
         }
         break;
       }
       case State.CalculateIrradianceMap: {
-        this.RenderToIrrCubemap();
+        if (this.env2irrProgram.isReady) {
+          this.RenderToIrrCubemap();
+        }
         break;
       }
       default:
@@ -194,10 +129,8 @@ export class PreCompute {
 
     // create shader program
     this.rad2envProgram = new Program(this.glSystem, {
-      vertFile: undefined,
-      fragFile: undefined,
-      vertSource: rad2envShader.vertSource,
-      fragSource: rad2envShader.fragSource,
+      vertFile: "assets/shaders/pre-computer/unitCube.vs",
+      fragFile: "assets/shaders/pre-computer/rad2env.fs",
       attributes: { "a_position": DataType.Float3 },
       uniforms: {
         textures: { "u_sphereMap": TextureType.Texture2D },
@@ -206,10 +139,8 @@ export class PreCompute {
     });
 
     this.env2irrProgram = new Program(this.glSystem, {
-      vertFile: undefined,
-      fragFile: undefined,
-      vertSource: env2irrShader.vertSource,
-      fragSource: env2irrShader.fragSource,
+      vertFile: "assets/shaders/pre-computer/unitCube.vs",
+      fragFile: "assets/shaders/pre-computer/env2irr.fs",
       attributes: { "a_position": DataType.Float3 },
       uniforms: {
         textures: { "u_envMap": TextureType.TextureCubeMap },

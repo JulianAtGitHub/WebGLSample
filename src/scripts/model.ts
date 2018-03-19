@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
 
-export enum IndexMode {
+export enum PrimitiveMode {
   TriangleList,
   TriangleStrip,
   TriangleFan
@@ -31,8 +31,8 @@ export interface Model {
   normals?: Data;
   texCoords?: Data;
   colors?: Data;
-  indices: Data;
-  indexMode: IndexMode;
+  indices?: Data;
+  primitive: PrimitiveMode;
 
   // texture
   normalMap?: string;
@@ -111,7 +111,7 @@ export function CreateSphere(): Model {
       type: DataType.Int,
       data: indices
     },
-    indexMode: IndexMode.TriangleStrip,
+    primitive: PrimitiveMode.TriangleStrip,
   };
 }
 
@@ -163,7 +163,7 @@ export function CreateSkybox(): Model {
         20, 22, 23,   22, 20, 21,   // top
       ]
     },
-    indexMode: IndexMode.TriangleList
+    primitive: PrimitiveMode.TriangleList
   };
 }
 
@@ -253,7 +253,31 @@ export function CreateCube(): Model {
         20, 21, 22,     20, 22, 23,   // left
       ]
     },
-    indexMode: IndexMode.TriangleList,
+    primitive: PrimitiveMode.TriangleList
   };
 
+}
+
+export function CreateQuad(): Model {
+  return {
+    positions: {
+      type: DataType.Float3,
+      data: [
+        -1.0,  1.0, 0.0,
+        -1.0, -1.0, 0.0,
+         1.0,  1.0, 0.0,
+         1.0, -1.0, 0.0
+      ]
+    },
+    texCoords: {
+      type: DataType.Float2,
+      data: [
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 1.0,
+        1.0, 0.0
+      ]
+    },
+    primitive: PrimitiveMode.TriangleStrip
+  };
 }

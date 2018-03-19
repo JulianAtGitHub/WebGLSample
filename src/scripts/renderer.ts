@@ -4,7 +4,7 @@ import { LightInfo, TextureInfo, BufferInfo, GLSystem } from "./gl-system";
 import { Program } from "./program";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
-import { IndexMode, DataType, TextureType } from "./model";
+import { PrimitiveMode, DataType, TextureType } from "./model";
 
 export class Renderer {
 
@@ -141,7 +141,13 @@ export class Renderer {
 
     this.SetupOtherUniforms(camera, drawable, light, program);
 
-    // Tell WebGL which indices to use to index the vertices
+    let mode = gl.TRIANGLES;
+    switch(drawable.primitiveMode) {
+      case PrimitiveMode.TriangleStrip: mode = gl.TRIANGLE_STRIP; break;
+      case PrimitiveMode.TriangleFan: mode = gl.TRIANGLE_FAN; break;
+      default: break;
+    }
+
     const indices = drawable.buffers.indices;
     if (indices && indices.buffer) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices.buffer);
@@ -149,15 +155,18 @@ export class Renderer {
       const vertexCount = indices.rawData.length;
       const type = gl.UNSIGNED_SHORT;
       const offset = 0;
-
-      let mode = gl.TRIANGLES;
-      switch(drawable.indexMode) {
-        case IndexMode.TriangleStrip: mode = gl.TRIANGLE_STRIP; break;
-        case IndexMode.TriangleFan: mode = gl.TRIANGLE_FAN; break;
+      gl.drawElements(mode, vertexCount, type, offset);
+    } else {
+      // positions should exist
+      const positions = drawable.buffers.positions;
+      let vertexComponent = 3;
+      switch (positions.rawDataType) {
+        case DataType.Float2: vertexComponent = 2; break;
+        case DataType.Float4: vertexComponent = 4; break;
         default: break;
       }
-
-      gl.drawElements(mode, vertexCount, type, offset);
+      const vertexCount = Math.round(positions.rawData.length / vertexComponent);
+      gl.drawArrays(mode, 0, vertexCount);
     }
   }
 

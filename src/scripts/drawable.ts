@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { vec3, mat4, mat3 } from "gl-matrix";
-import { IndexMode, Data, Model } from "./model";
+import { PrimitiveMode, Data, Model } from "./model";
 import { TextureInfo, BufferInfo, GLSystem} from "./gl-system";
 
 export class Drawable {
@@ -8,10 +8,8 @@ export class Drawable {
   public textures: {[id: string]: TextureInfo};
   public values: {[id: string]: any};
 
-  private _indexMode: IndexMode;
-  public get indexMode(): IndexMode {
-    return this._indexMode;
-  }
+  private _primitiveMode: PrimitiveMode;
+  public get primitiveMode(): PrimitiveMode { return this._primitiveMode; }
 
   private _position: vec3;
   private _rotation: vec3;
@@ -48,7 +46,7 @@ export class Drawable {
     if (model.texCoords) { this.buffers.texCoords = this.LoadBuffer(model.texCoords, glSystem, {isElement: false}); }
     if (model.colors) { this.buffers.colors = this.LoadBuffer(model.colors, glSystem, {isElement: false}); }
     if (model.indices) { this.buffers.indices = this.LoadBuffer(model.indices, glSystem, {isElement: true}); }
-    this._indexMode = model.indexMode;
+    this._primitiveMode = model.primitive;
   }
 
   private LoadBuffer(data: Data, glSystem: GLSystem, options: {isElement: boolean}): BufferInfo {

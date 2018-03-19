@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { vec3, mat4 } from "gl-matrix";
-import { TextureInfo, GLSystem } from "./gl-system";
+import { TextureInfo, GLSystem, IsPOT } from "./gl-system";
 import { Program } from "./program";
 import { DataType, TextureType, CreateSkybox } from "./model";
 import { Drawable } from "./drawable";
@@ -10,6 +10,7 @@ enum State {
   LoadRadianceTexture,
   ConvertToEnvironmentMap,
   CalculateIrradianceMap,
+  CalculatePreFilterMap,
   Finished
 }
 
@@ -17,27 +18,42 @@ export class PreCompute {
 
   private state: State;
   private unitCube: Drawable;
+
   private rad2envProgram: Program;
   private env2irrProgram: Program;
+  private env2filProgram: Program;
+
   private envSize: number;
   private irrSize: number;
+  private filSize: number;
+
   private envCubeMap: WebGLTexture;
   private irrCubeMap: WebGLTexture;
+  private filCubeMap: WebGLTexture;
+
+  private cubemapTargets: number[];
+  private viewProjMatrixes: mat4[];
 
   // temp properties
   private shpereMap: TextureInfo;
-  private cubemapTargets: number[];
-  private viewProjMatrixes: mat4[];
   private captureFBO: WebGLFramebuffer;
   private captureRBO: WebGLRenderbuffer;
 
   public constructor(private glSystem: GLSystem) {
     this.unitCube = null;
     this.shpereMap = null;
+
     this.rad2envProgram = null;
     this.env2irrProgram = null;
+    this.env2filProgram = null;
+
     this.envSize = 512;
     this.irrSize = 32;
+    this.filSize = 128;
+
+    this.envCubeMap = null;
+    this.irrCubeMap = null;
+    this.filCubeMap = null;
 
     const gl = this.glSystem.context;
     this.cubemapTargets = [
@@ -60,9 +76,7 @@ export class PreCompute {
       mat4.multiply(mat4.create(), projection, mat4.lookAt(mat4.create(), vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues( 0.0, 0.0, 1.0), vec3.fromValues(0.0,-1.0, 0.0))),
       mat4.multiply(mat4.create(), projection, mat4.lookAt(mat4.create(), vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues( 0.0, 0.0,-1.0), vec3.fromValues(0.0,-1.0, 0.0)))
     ];
-    
-    this.envCubeMap = null;
-    this.irrCubeMap = null;
+
     this.captureFBO = null;
     this.captureRBO = null;
 
@@ -89,6 +103,15 @@ export class PreCompute {
     }; 
   }
 
+  public get filMap(): TextureInfo {
+    return {
+      texture: this.filCubeMap,
+      type: TextureType.TextureCubeMap,
+      width: this.filSize,
+      height: this.filSize
+    }; 
+  }
+
   public set image(image: string) {
     this.state = State.LoadRadianceTexture;
     this.shpereMap = this.glSystem.CreateRadianceHDRTexture(image);
@@ -103,12 +126,21 @@ export class PreCompute {
         }
         break;
       }
+
       case State.CalculateIrradianceMap: {
         if (this.env2irrProgram.isReady) {
           this.RenderToIrrCubemap();
         }
         break;
       }
+
+      case State.CalculatePreFilterMap: {
+        if (this.env2filProgram.isReady) {
+          this.RenderToPreFilterMap();
+        }
+        break;
+      }
+
       default:
         break;
     }
@@ -127,7 +159,7 @@ export class PreCompute {
 
     const gl = this.glSystem.context;
 
-    // create shader program
+    // create shader programs
     this.rad2envProgram = new Program(this.glSystem, {
       vertFile: "assets/shaders/pre-computer/unitCube.vs",
       fragFile: "assets/shaders/pre-computer/rad2env.fs",
@@ -148,12 +180,26 @@ export class PreCompute {
       }
     });
 
+    this.env2filProgram = new Program(this.glSystem, {
+      vertFile: "assets/shaders/pre-computer/unitCube.vs",
+      fragFile: "assets/shaders/pre-computer/env2fil.fs",
+      attributes: { "a_position": DataType.Float3 },
+      uniforms: {
+        textures: { "u_envMap": TextureType.TextureCubeMap },
+        others: { 
+          "u_viewProjMatrix": DataType.Float4x4,
+          "u_roughness": DataType.Float,
+          "u_resolution": DataType.Float
+        }
+      }
+    });
+
     // load model
     const cube = CreateSkybox();
     this.unitCube = new Drawable(cube, this.glSystem);
   }
 
-  private CreateCubeMap(size: number): WebGLTexture {
+  private CreateCubeMap(size: number, mipmap: boolean = false): WebGLTexture {
     const gl = this.glSystem.context;
 
     const level = 0;
@@ -172,10 +218,17 @@ export class PreCompute {
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
+    if (mipmap === true && IsPOT(size)) {
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    }
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+
     return cubeMap;
   }
 
-  private RenderUnitCube(target: WebGLTexture, program: Program) {
+  private RenderToCubeMap(target: WebGLTexture, program: Program) {
     const gl = this.glSystem.context;
 
     const indexBuffer = this.unitCube.buffers.indices;
@@ -187,6 +240,7 @@ export class PreCompute {
 
     for (let i = 0; i < this.cubemapTargets.length; ++i) {
       program.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
+      // For webgl1.0, mipmap must be zero. Otherwise error gl.INVALID_VALUE will throw
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], target, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -227,10 +281,15 @@ export class PreCompute {
 
     gl.viewport(0, 0, this.envSize, this.envSize);
 
-    this.RenderUnitCube(this.envCubeMap, this.rad2envProgram);
+    this.RenderToCubeMap(this.envCubeMap, this.rad2envProgram);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.envCubeMap);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
 
     this.state = State.CalculateIrradianceMap;
   }
@@ -249,7 +308,91 @@ export class PreCompute {
 
     gl.viewport(0, 0, this.irrSize, this.irrSize);
 
-    this.RenderUnitCube(this.irrCubeMap, this.env2irrProgram);
+    this.RenderToCubeMap(this.irrCubeMap, this.env2irrProgram);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    this.state = State.CalculatePreFilterMap;
+  }
+
+  private RenderToPreFilterMap() {
+    const gl = this.glSystem.context;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
+
+    this.env2filProgram.Use();
+    this.env2filProgram.SetUniform("u_resolution", this.envSize, DataType.Float);
+
+    this.filCubeMap = this.CreateCubeMap(this.filSize, true);
+
+    const maxMipmapLevels = 5;
+    for (let mipmap = 0; mipmap < maxMipmapLevels; ++mipmap) {
+      const size = Math.round(this.filSize * Math.pow(0.5, mipmap));
+
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+
+      gl.viewport(0, 0, size, size);
+
+      const roughness = mipmap / (maxMipmapLevels - 1.0);
+      this.env2filProgram.SetUniform("u_roughness", roughness, DataType.Float);
+      
+      // For webgl1.0, render target not support specify a mipmap level of texture
+      // So create a render target without mipmap and copy pixels to target mipmaps of original texture after finished
+      {
+        const indexBuffer = this.unitCube.buffers.indices;
+        const numComponents = 3;
+        const type = gl.FLOAT;
+        const normalize = false;
+        const stride = 0;
+        const offset = 0;
+
+        const internalFormat = gl.RGB;
+        const border = 0;
+        const targetFormat = gl.RGBA;
+        const srcFormat = gl.RGB;
+
+        const renderTarget = this.CreateCubeMap(size);
+    
+        for (let i = 0; i < this.cubemapTargets.length; ++i) {
+          this.env2filProgram.SetTexture("u_envMap", this.envCubeMap, TextureType.TextureCubeMap);
+          this.env2filProgram.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
+
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], renderTarget, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    
+          const positions = this.unitCube.buffers.positions;
+          this.env2filProgram.SetAttribute("a_position", positions.buffer, positions.rawDataType);
+    
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.buffer);
+          const vertexCount = indexBuffer.rawData.length;
+    
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+    
+          // copy texture data to filCubeMap
+          const rbgas = new Float32Array(size * size * 4);
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, renderTarget);
+          gl.readPixels(0, 0, size, size, targetFormat, type, rbgas);
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+
+          // remove alpha component
+          const rgbs = new Float32Array(size * size * 3);
+          for (let m = 0; m < size * size; ++m) {
+            rgbs[3 * m] = rbgas[4 * m];
+            rgbs[3 * m + 1] = rbgas[4 * m + 1];
+            rgbs[3 * m + 2] = rbgas[4 * m + 2];
+          }
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.filCubeMap);
+          gl.texImage2D(this.cubemapTargets[i], mipmap, internalFormat, size, size, border, srcFormat, type, rgbs);
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+        }
+
+        gl.deleteTexture(renderTarget);
+      }
+    }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
@@ -257,8 +400,11 @@ export class PreCompute {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     this.state = State.Finished;
+  }
 
-    // delete temp values
+  private DeleteTempObjects() {
+    const gl = this.glSystem.context;
+
     gl.deleteFramebuffer(this.captureFBO);
     gl.deleteRenderbuffer(this.captureRBO);
 

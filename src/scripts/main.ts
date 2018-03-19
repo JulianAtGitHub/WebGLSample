@@ -1,6 +1,6 @@
 import { LightInfo, TextureInfo, GLSystem } from "./gl-system";
 import { Renderer } from "./renderer";
-import { Model, CreateSkybox, CreateSphere } from "./model";
+import { Model, CreateSkybox, CreateSphere, CreateQuad } from "./model";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
 import { vec3 } from "gl-matrix";
@@ -59,6 +59,11 @@ function Main(canvasId: string) {
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, glSystem);
 
+  // debug
+  const debugTexture2D = Utils.CreateDebugTexture2DProgram(glSystem);
+  const quadModel = CreateQuad();
+  const quad = new Drawable(quadModel, glSystem);
+
   // const metallicSlider: any = document.getElementById("metallic");
   // metallicSlider.oninput = () => {
   //   // sphere.values.metallic = metallicSlider.value / 100.0;
@@ -93,6 +98,11 @@ function Main(canvasId: string) {
       // skybox
       box.textures.envMap = preCompute.envMap;
       renderer.Draw(camera, box, null, skybox);
+
+      // debug
+      // quad.textures.texture2D = preCompute.brdfMap;
+      // renderer.Draw(camera, quad, null, debugTexture2D);
+
     } else {
       preCompute.update();
     }

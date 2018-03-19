@@ -80,3 +80,20 @@ export function CreatePbrProgram(glSystem: GLSystem): Program {
 
   return program;
 }
+
+export function CreateDebugTexture2DProgram(glSystem: GLSystem): Program {
+  const program = new Program(glSystem, {
+    vertFile: "assets/shaders/debug/texture2d.vs",
+    fragFile: "assets/shaders/debug/texture2d.fs",
+    attributes: {
+      "a_position": DataType.Float3,
+      "a_texCoord": DataType.Float2
+    },
+    uniforms: {
+      textures: { "u_texture2D": TextureType.Texture2D },
+      others: { }
+    }
+  });
+
+  return program;
+}

@@ -4,8 +4,8 @@ import { Program } from "./program";
 
 export function CreatePhoneProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
-    vertFile: "assets/phong.vs",
-    fragFile: "assets/phong.fs",
+    vertFile: "assets/shaders/phong.vs",
+    fragFile: "assets/shaders/phong.fs",
     attributes: {
       "a_position": DataType.Float3,
       "a_normal": DataType.Float3,
@@ -30,8 +30,8 @@ export function CreatePhoneProgram(glSystem: GLSystem): Program {
 
 export function CreateSkyboxProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
-    vertFile: "assets/skybox.vs",
-    fragFile: "assets/skybox.fs",
+    vertFile: "assets/shaders/skybox.vs",
+    fragFile: "assets/shaders/skybox.fs",
     attributes: {
       "a_position": DataType.Float3
     },
@@ -51,8 +51,8 @@ export function CreateSkyboxProgram(glSystem: GLSystem): Program {
 
 export function CreatePbrProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
-    vertFile: "assets/pbr.vs",
-    fragFile: "assets/pbr.fs",
+    vertFile: "assets/shaders/pbr.vs",
+    fragFile: "assets/shaders/pbr.fs",
     attributes: {
       "a_position": DataType.Float3,
       "a_normal": DataType.Float3,

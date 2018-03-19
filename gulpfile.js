@@ -10,8 +10,10 @@ var respurces = {
     'src/styles/*.css'
   ],
   assets: [
-    'src/assets/*.*',
-    'src/shaders/*.*'
+    'src/assets/*.*'
+  ],
+  shaders: [
+    'src/shaders/**/*.*'
   ],
   scripts: [
     'src/js/*.js'
@@ -23,12 +25,17 @@ gulp.task("copy-htmls", function () {
     .pipe(gulp.dest("dist"));
 });
 
+gulp.task("copy-shaders", function () {
+  return gulp.src(respurces.shaders)
+    .pipe(gulp.dest("dist/assets/shaders"));
+});
+
 gulp.task("copy-assets", function () {
   return gulp.src(respurces.assets)
     .pipe(gulp.dest("dist/assets"));
 });
 
-gulp.task("default", ["copy-htmls", "copy-assets"], function () {
+gulp.task("default", ["copy-htmls", "copy-shaders", "copy-assets"], function () {
   return browserify({
     basedir: '.',
     debug: true,

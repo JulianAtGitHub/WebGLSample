@@ -8,9 +8,18 @@
     <body>
         <canvas id="glCanvas" width="800" height="600"></canvas>
         <div class="slidecontainer">
+            <div>Metallic:</div>
             <input type="range" min="1" max="100" value="50" class="slider" id="metallic">
+            <br/>
+            <div>Roughness:</div>
             <input type="range" min="1" max="100" value="50" class="slider" id="roughness">
+            <br/>
+            <div>AO:</div>
             <input type="range" min="1" max="100" value="50" class="slider" id="ao">
+            <br/>
+            <div>Albedo:</div>
+            <input type="color" value="#ffffff" class="picker" id="albedo">
+            <br/>
         </div>
         <script src="bundle.js"></script>
     </body>

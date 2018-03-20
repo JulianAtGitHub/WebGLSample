@@ -45,7 +45,7 @@ function Main(canvasId: string) {
   goldSphereModel.aoMap = "assets/gold_ao.png";
 
   const goldSphere = new Drawable(goldSphereModel, glSystem);
-  goldSphere.move([-1.1, 1.1, -7.0]);
+  goldSphere.move([-1.1, 1.1, -8.0]);
 
   const plasticSphereModel = CreateSphere();
   plasticSphereModel.albedoMap = "assets/plastic_albedo.png";
@@ -55,7 +55,7 @@ function Main(canvasId: string) {
   plasticSphereModel.aoMap = "assets/plastic_ao.png";
 
   const plasticSphere = new Drawable(plasticSphereModel, glSystem);
-  plasticSphere.move([-1.1, -1.1, -7.0]);
+  plasticSphere.move([-1.1, -1.1, -8.0]);
 
   const ironSphereModel = CreateSphere();
   ironSphereModel.albedoMap = "assets/iron_albedo.png";
@@ -65,15 +65,15 @@ function Main(canvasId: string) {
   ironSphereModel.aoMap = "assets/iron_ao.png";
 
   const ironSphere = new Drawable(ironSphereModel, glSystem);
-  ironSphere.move([1.1, -1.1, -7.0]);
+  ironSphere.move([1.1, -1.1, -8.0]);
 
   const sphereModel = CreateSphere();
-  sphereModel.albedo = vec3.fromValues(1.0, 0.0, 0.0);
+  sphereModel.albedo = vec3.fromValues(1.0, 1.0, 1.0);
   sphereModel.metallic = 0.5;
   sphereModel.roughness = 0.5;
   sphereModel.ao = 0.5;
   const sphere = new Drawable(sphereModel, glSystem);
-  sphere.move([1.1, 1.1, -7.0]);
+  sphere.move([1.1, 1.1, -8.0]);
 
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, glSystem);
@@ -83,6 +83,7 @@ function Main(canvasId: string) {
   const quadModel = CreateQuad();
   const quad = new Drawable(quadModel, glSystem);
 
+  // html elements
   const metallicSlider: any = document.getElementById("metallic");
   metallicSlider.oninput = () => {
     sphere.values.metallic = metallicSlider.value / 100.0;
@@ -101,9 +102,19 @@ function Main(canvasId: string) {
     // console.log("roughness:" + sphere.values.roughness);
   };
 
+  const albedoCP: any = document.getElementById("albedo");
+  albedoCP.addEventListener("change", (event: any) => {
+    const hexColor = event.target.value;
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor);
+    const r = parseInt(result[1], 16) / 255.0;
+    const g = parseInt(result[2], 16) / 255.0;
+    const b = parseInt(result[3], 16) / 255.0;
+    sphere.values.albedo = vec3.fromValues(r, g, b);
+  }, false);
+  
+  // Draw the scene repeatedly
   let then = 0;
   let pbrImageSetted = false;
-  // Draw the scene repeatedly
   const render = (now: number) => {
     now *= 0.001;  // convert to seconds
     const deltaTime = now - then;

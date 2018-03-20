@@ -31,7 +31,7 @@ function Main(canvasId: string) {
 
   const light: LightInfo = {
     position: vec3.fromValues(10.0, 10.0, 10.0), 
-    color: vec3.fromValues(300.0, 300.0, 300.0)
+    color: vec3.fromValues(100.0, 100.0, 100.0)
   };
 
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
@@ -48,12 +48,12 @@ function Main(canvasId: string) {
   ironSphere.move([3.0, 0.0, -8.0]);
 
   const sphereModel = CreateSphere();
-  sphereModel.albedo = vec3.fromValues(1.0, 1.0, 1.0);
+  sphereModel.albedo = vec3.fromValues(1.0, 0.0, 0.0);
   sphereModel.metallic = 0.5;
   sphereModel.roughness = 0.5;
   sphereModel.ao = 0.5;
   const sphere = new Drawable(sphereModel, glSystem);
-  sphere.move([0.0, 0.0, -8.0]);
+  sphere.move([6.0, 0.0, -8.0]);
 
   const goldSphereModel = CreateSphere();
   goldSphereModel.albedoMap = "assets/gold_albedo.png";
@@ -64,6 +64,16 @@ function Main(canvasId: string) {
 
   const goldSphere = new Drawable(goldSphereModel, glSystem);
   goldSphere.move([-3.0, 0.0, -8.0]);
+
+  const plasticSphereModel = CreateSphere();
+  plasticSphereModel.albedoMap = "assets/plastic_albedo.png";
+  plasticSphereModel.normalMap = "assets/plastic_normal.png";
+  plasticSphereModel.metallicMap = "assets/plastic_metallic.png";
+  plasticSphereModel.roughnessMap = "assets/plastic_roughness.png";
+  plasticSphereModel.aoMap = "assets/plastic_ao.png";
+
+  const plasticSphere = new Drawable(plasticSphereModel, glSystem);
+  plasticSphere.move([0.0, 0.0, -8.0]);
 
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, glSystem);
@@ -99,8 +109,9 @@ function Main(canvasId: string) {
     const deltaTime = now - then;
     then = now;
 
-    ironSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
-    goldSphere.rotate([0.0, deltaTime * 0.5, 0.0]);
+    ironSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
+    goldSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
+    plasticSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
 
     if (preCompute.isReady) {
       if (!pbrImageSetted) {
@@ -116,6 +127,10 @@ function Main(canvasId: string) {
         sphere.textures.prefilterMap = preCompute.filMap;
         sphere.textures.brdfMap = preCompute.brdfMap;
 
+        plasticSphere.textures.irradianceMap = preCompute.irrMap;
+        plasticSphere.textures.prefilterMap = preCompute.filMap;
+        plasticSphere.textures.brdfMap = preCompute.brdfMap;
+
         box.textures.envMap = preCompute.envMap;
         pbrImageSetted = true;
       }
@@ -124,6 +139,7 @@ function Main(canvasId: string) {
       // scene 
       renderer.Draw(camera, ironSphere, light, pbr);
       renderer.Draw(camera, goldSphere, light, pbr);
+      renderer.Draw(camera, plasticSphere, light, pbr);
       renderer.Draw(camera, sphere, light, pbrNoTextured);
       // skybox
       renderer.Draw(camera, box, null, skybox);

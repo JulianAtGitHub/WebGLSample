@@ -31,7 +31,7 @@ void main(void) {
       vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
       vec3 worldSample = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
       irradiance += textureCube(u_envMap, worldSample).rgb * cos(theta) * sin(theta);
-      nrSamples += 1.0;
+      nrSamples ++;
     }
   }
 

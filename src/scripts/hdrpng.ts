@@ -282,7 +282,27 @@ export class HDRImage {
   public get dataFloat(): Float32Array { return HDRImage.rgbeToFloat(this.HDRdata); }
   public get dataRGBE(): Uint8Array { return this.HDRdata; }
 
-  public toHDRBlob(cb: (result: Blob | null) => void, m: string, q:any) {
+  public DataFloat(flipY: boolean = false): Float32Array {
+    const result = this.dataFloat;
+    if (flipY === true) {
+      const w = this.res.width;
+      const h = this.res.height;
+      const depth = 3;
+      let temp;
+      for (let row = 0; row < (h >> 1); row++) {
+        for (let col = 0; col < w; col++) {
+            for (let z = 0; z < depth; z++) {
+                temp = result[(row * w + col) * depth + z];
+                result[(row * w + col) * depth + z] = result[((h - row - 1) * w + col) * depth + z];
+                result[((h - row - 1) * w + col) * depth + z] = temp;
+            }
+        }
+      }
+    }
+    return result;
+  }
+
+  public ToHDRBlob(cb: (result: Blob | null) => void, m: string, q:any) {
     // Array to image.. slightly more involved.  
     const createShader = (gl: WebGLRenderingContext, source: string, type: number): WebGLShader  => {
       const shader = gl.createShader(type);

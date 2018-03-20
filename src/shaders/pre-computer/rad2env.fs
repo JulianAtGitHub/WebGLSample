@@ -17,7 +17,6 @@ vec2 SampleSphereMap(vec3 v) {
 
 void main(void) {
   vec2 uv = SampleSphereMap(normalize(v_position));
-  // vec3 color = texture2D(u_sphereMap, uv).rgb;
-  vec3 color = texture2D(u_sphereMap, vec2(uv.x, 1.0 - uv.y)).rgb;
+  vec3 color = texture2D(u_sphereMap, uv).rgb;
   gl_FragColor = vec4(color, 1.0);
 }

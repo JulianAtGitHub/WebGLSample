@@ -6,11 +6,11 @@ var connect = require('gulp-connect');
 
 var respurces = {
   htmls: [
-    'src/htmls/*.html',
-    'src/styles/*.css'
+    'htmls/*.html',
+    'styles/*.css'
   ],
   assets: [
-    'src/assets/*.*'
+    'assets/*.*'
   ],
   shaders: [
     'src/shaders/**/*.*'

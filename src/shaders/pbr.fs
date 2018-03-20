@@ -132,7 +132,7 @@ void main(void) {
   // Calculate reflectance at normal incidence; 
   // If dia-electric (like plastic) use F0 of 0.04
   // And if it's a metal, use the albedo color as F0 (metal workflow)
-  vec3 f0 = vec3(0.4);
+  vec3 f0 = vec3(0.04);
   f0 = mix(f0, albedo, metallic);
 
   // calculate light

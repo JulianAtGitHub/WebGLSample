@@ -30,30 +30,12 @@ function Main(canvasId: string) {
   const skybox = Utils.CreateSkyboxProgram(glSystem);
 
   const light: LightInfo = {
-    position: vec3.fromValues(10.0, 10.0, 10.0), 
-    color: vec3.fromValues(100.0, 100.0, 100.0)
+    position: vec3.fromValues(-10.0, 10.0, 10.0), 
+    color: vec3.fromValues(300.0, 300.0, 300.0)
   };
 
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
   camera.HandleMouseInput(canvas);
-
-  const ironSphereModel = CreateSphere();
-  ironSphereModel.albedoMap = "assets/iron_albedo.png";
-  ironSphereModel.normalMap = "assets/iron_normal.png";
-  ironSphereModel.metallicMap = "assets/iron_metallic.png";
-  ironSphereModel.roughnessMap = "assets/iron_roughness.png";
-  ironSphereModel.aoMap = "assets/iron_ao.png";
-
-  const ironSphere = new Drawable(ironSphereModel, glSystem);
-  ironSphere.move([3.0, 0.0, -8.0]);
-
-  const sphereModel = CreateSphere();
-  sphereModel.albedo = vec3.fromValues(1.0, 0.0, 0.0);
-  sphereModel.metallic = 0.5;
-  sphereModel.roughness = 0.5;
-  sphereModel.ao = 0.5;
-  const sphere = new Drawable(sphereModel, glSystem);
-  sphere.move([6.0, 0.0, -8.0]);
 
   const goldSphereModel = CreateSphere();
   goldSphereModel.albedoMap = "assets/gold_albedo.png";
@@ -63,7 +45,7 @@ function Main(canvasId: string) {
   goldSphereModel.aoMap = "assets/gold_ao.png";
 
   const goldSphere = new Drawable(goldSphereModel, glSystem);
-  goldSphere.move([-3.0, 0.0, -8.0]);
+  goldSphere.move([-1.1, 1.1, -7.0]);
 
   const plasticSphereModel = CreateSphere();
   plasticSphereModel.albedoMap = "assets/plastic_albedo.png";
@@ -73,7 +55,25 @@ function Main(canvasId: string) {
   plasticSphereModel.aoMap = "assets/plastic_ao.png";
 
   const plasticSphere = new Drawable(plasticSphereModel, glSystem);
-  plasticSphere.move([0.0, 0.0, -8.0]);
+  plasticSphere.move([-1.1, -1.1, -7.0]);
+
+  const ironSphereModel = CreateSphere();
+  ironSphereModel.albedoMap = "assets/iron_albedo.png";
+  ironSphereModel.normalMap = "assets/iron_normal.png";
+  ironSphereModel.metallicMap = "assets/iron_metallic.png";
+  ironSphereModel.roughnessMap = "assets/iron_roughness.png";
+  ironSphereModel.aoMap = "assets/iron_ao.png";
+
+  const ironSphere = new Drawable(ironSphereModel, glSystem);
+  ironSphere.move([1.1, -1.1, -7.0]);
+
+  const sphereModel = CreateSphere();
+  sphereModel.albedo = vec3.fromValues(1.0, 0.0, 0.0);
+  sphereModel.metallic = 0.5;
+  sphereModel.roughness = 0.5;
+  sphereModel.ao = 0.5;
+  const sphere = new Drawable(sphereModel, glSystem);
+  sphere.move([1.1, 1.1, -7.0]);
 
   const boxModel = CreateSkybox();
   const box = new Drawable(boxModel, glSystem);
@@ -145,6 +145,7 @@ function Main(canvasId: string) {
       renderer.Draw(camera, box, null, skybox);
 
       // debug
+      // gl.viewport(0, 0, 512, 512);
       // quad.textures.texture2D = preCompute.brdfMap;
       // renderer.Draw(camera, quad, null, debugTexture2D);
 

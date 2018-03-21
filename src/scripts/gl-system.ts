@@ -314,7 +314,7 @@ export class GLSystem {
     let offset = 0;
     for (let i = 0; i < vertices.layouts.length; ++i) {
       const layout = vertices.layouts[i];
-      gl.enableVertexAttribArray(i);
+      gl.enableVertexAttribArray(layout.usage);
       let size = 0;
       switch(layout.type) {
         case DataType.Float: size = 1; break;
@@ -323,7 +323,7 @@ export class GLSystem {
         case DataType.Float4: size = 4; break;
         default: console.error("Invalod layout data type in vertices, type:" + layout.type);
       }
-      gl.vertexAttribPointer(i, size, gl.FLOAT, false, stride, offset);
+      gl.vertexAttribPointer(layout.usage, size, gl.FLOAT, false, stride, offset);
 
       offset += size * sizeOfFloat;
     }

@@ -23,7 +23,7 @@ function Main(canvasId: string) {
   const renderer = new Renderer(glSystem);
 
   const preCompute = new PreCompute(glSystem);
-  preCompute.image = "assets/newport_loft.hdr";
+  preCompute.image = "assets/Mans_Outside_2k.hdr";
 
   const pbr = Utils.CreatePbrProgram(glSystem);
   const pbrNoTextured = Utils.CreatePbrNoTexturedProgram(glSystem);

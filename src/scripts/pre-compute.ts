@@ -53,7 +53,7 @@ export class PreCompute {
     this.env2filProgram = null;
     this.brdfGenProgram = null;
 
-    this.envSize = 512;
+    this.envSize = 1024;
     this.irrSize = 32;
     this.filSize = 128;
     this.lutSize = 512;

@@ -273,10 +273,6 @@ export class PreCompute {
 
     const vertexInfo = this.unitCube.vertex;
     gl.bindVertexArray(vertexInfo.vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
-    if (vertexInfo.ebo) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexInfo.ebo);
-    }
 
     for (let i = 0; i < this.cubemapTargets.length; ++i) {
       program.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
@@ -287,6 +283,8 @@ export class PreCompute {
 
       gl.drawElements(gl.TRIANGLES, vertexInfo.count, gl.UNSIGNED_SHORT, 0);
     }
+
+    gl.bindVertexArray(null);
   }
 
   private RenderToEnvCubemap() {
@@ -431,9 +429,10 @@ export class PreCompute {
 
     const vertexInfo = this.unitQuad.vertex;
     gl.bindVertexArray(vertexInfo.vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
+
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexInfo.count);
 
+    gl.bindVertexArray(null);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);

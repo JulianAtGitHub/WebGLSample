@@ -289,16 +289,13 @@ export class GLSystem {
 
     const gl = this.gl;
 
-    const vao = gl.createVertexArray();
     const vbo = this.CreateBufferObject(vertices.data, DataType.Float, false);
     const ebo = (indices ? this.CreateBufferObject(indices.data, DataType.Int, true): null);
+    const vao = gl.createVertexArray();
 
     // setup vertex array
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    if (ebo) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
-    }
 
     const sizeOfFloat = 4;
     // calculate stride
@@ -331,8 +328,10 @@ export class GLSystem {
       offset += size * sizeOfFloat;
     }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    if (ebo) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    }
+
     gl.bindVertexArray(null);
 
     const count = (ebo !== null ? indices.data.length : vertices.data.length / (stride / sizeOfFloat));

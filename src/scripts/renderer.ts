@@ -121,10 +121,6 @@ export class Renderer {
 
     // set attributes
     gl.bindVertexArray(vertexInfo.vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
-    if (vertexInfo.ebo) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexInfo.ebo);
-    }
 
     // set textures
     _.map(program.textureNames, (id: string) => {
@@ -156,6 +152,8 @@ export class Renderer {
       const first = 0;
       gl.drawArrays(mode, first, vertexCount);
     }
+
+    gl.bindVertexArray(null);
   }
 
 }

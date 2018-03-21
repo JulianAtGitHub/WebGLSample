@@ -28,9 +28,6 @@ export function IsPOT(value: number): boolean {
 }
 
 const DependentedExts = [
-  "EXT_shader_texture_lod",
-  "OES_standard_derivatives",
-  "OES_texture_float",
   "OES_texture_float_linear"
 ];
 
@@ -41,13 +38,13 @@ export class GLSystem {
   private _isReliable: boolean = true;
   public get isReliable(): boolean { return this._isReliable; }
 
-  public constructor(private gl: WebGLRenderingContext) {
+  public constructor(private gl: WebGL2RenderingContext) {
     _.map(DependentedExts, (ext) => {
       !this.GetExtension(ext) && (this._isReliable = false);
     });
   }
 
-  public get context(): WebGLRenderingContext {
+  public get context(): WebGL2RenderingContext {
     return this.gl;
   }
 

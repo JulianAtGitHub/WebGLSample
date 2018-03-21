@@ -2,9 +2,9 @@ uniform mat4 u_modelMatrix;
 uniform mat3 u_normalMatrix;
 uniform mat4 u_viewProjMatrix;
 
-in vec3 a_position;
-in vec3 a_normal;
-in vec2 a_texCoord;
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec3 a_normal;
+layout (location = 2) in vec2 a_texCoord;
 
 out vec3 v_position;
 out vec3 v_normal;

@@ -1,7 +1,7 @@
 uniform mat4 u_viewMatrix;
 uniform mat4 u_projMatrix;
 
-in vec3 a_position;
+layout (location = 0) in vec3 a_position;
 
 out vec3 v_position;
 

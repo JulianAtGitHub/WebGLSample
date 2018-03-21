@@ -24,6 +24,7 @@
   "dependencies": {
     "@types/gl-matrix": "^2.4.0",
     "@types/jquery": "^3.3.0",
-    "@types/lodash": "^4.14.104"
+    "@types/lodash": "^4.14.104",
+    "@types/webgl2": "0.0.3"
   }
 }

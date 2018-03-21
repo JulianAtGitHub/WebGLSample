@@ -1,10 +1,4 @@
-#extension GL_OES_standard_derivatives : enable
-#extension GL_EXT_shader_texture_lod : enable
 precision mediump float;
-
-varying vec3 v_position;
-varying vec3 v_normal;
-varying vec2 v_texCoord;
 
 // material
 #ifdef HAS_PBR_TEXTURES
@@ -31,13 +25,19 @@ uniform vec3 u_lightColor;
 
 uniform vec3 u_viewPos;
 
+in vec3 v_position;
+in vec3 v_normal;
+in vec2 v_texCoord;
+
+out vec4 o_fragColor;
+
 const float PI = 3.14159265359;
 const float MAX_REFLECTION_LOD = 4.0;
 
 #ifdef HAS_PBR_TEXTURES
 // Easy trick to get tangent-normals to world-space to keep PBR code simplified.
 vec3 NormalFromTexture() {
-  vec3 tangentNormal = texture2D(u_normalMap, v_texCoord).xyz * 2.0 - 1.0;
+  vec3 tangentNormal = texture(u_normalMap, v_texCoord).xyz * 2.0 - 1.0;
 
   vec3 Q1 = dFdx(v_position);
   vec3 Q2 = dFdy(v_position);
@@ -105,10 +105,10 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 f0, float roughness) {
 
 void main(void) {
 #ifdef HAS_PBR_TEXTURES
-  vec3 albedo = pow(texture2D(u_albedoMap, v_texCoord).rgb, vec3(2.2));
-  float metallic = texture2D(u_metallicMap, v_texCoord).r;
-  float roughness = texture2D(u_roughnessMap, v_texCoord).r;
-  float ao = texture2D(u_aoMap, v_texCoord).r;
+  vec3 albedo = pow(texture(u_albedoMap, v_texCoord).rgb, vec3(2.2));
+  float metallic = texture(u_metallicMap, v_texCoord).r;
+  float roughness = texture(u_roughnessMap, v_texCoord).r;
+  float ao = texture(u_aoMap, v_texCoord).r;
 
   vec3 N = NormalFromTexture();
 #else
@@ -171,12 +171,12 @@ void main(void) {
   vec3 kS = F;
   vec3 kD = vec3(1.0) - kS;
   kD *= 1.0 - metallic;
-  vec3 irradiance = textureCube(u_irradianceMap, N).rgb;
+  vec3 irradiance = texture(u_irradianceMap, N).rgb;
   vec3 diffuse = irradiance * albedo;
 
   // specular
-  vec3 perfilteredColor = textureCubeLodEXT(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-  vec2 brdf = texture2D(u_brdfMap, vec2(NdotV, roughness)).rg;
+  vec3 perfilteredColor = textureLod(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+  vec2 brdf = texture(u_brdfMap, vec2(NdotV, roughness)).rg;
   vec3 specular = perfilteredColor * (F * brdf.x + brdf.y);
 
   vec3 ambient = (kD * diffuse + specular) * ao;
@@ -186,5 +186,5 @@ void main(void) {
   
   color = HDRToneMapping(color);
   color = GammaCorrect(color);
-  gl_FragColor = vec4(color, 1.0);
+  o_fragColor = vec4(color, 1.0);
 }

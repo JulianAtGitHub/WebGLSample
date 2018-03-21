@@ -1,9 +1,9 @@
-attribute vec3 a_position;
-
 uniform mat4 u_viewMatrix;
 uniform mat4 u_projMatrix;
 
-varying vec3 v_position;
+in vec3 a_position;
+
+out vec3 v_position;
 
 void main(void) {
   v_position = a_position;

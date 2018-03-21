@@ -1,10 +1,12 @@
-// radiance spherical map to environment cube map
-
 precision mediump float;
 
-varying vec3 v_position;
+// radiance spherical map to environment cube map
 
 uniform sampler2D u_sphereMap;
+
+in vec3 v_position;
+
+out vec4 o_fragColor;
 
 const vec2 invAtan = vec2(0.1591, 0.3183);
 
@@ -17,6 +19,6 @@ vec2 SampleSphereMap(vec3 v) {
 
 void main(void) {
   vec2 uv = SampleSphereMap(normalize(v_position));
-  vec3 color = texture2D(u_sphereMap, uv).rgb;
-  gl_FragColor = vec4(color, 1.0);
+  vec3 color = texture(u_sphereMap, uv).rgb;
+  o_fragColor = vec4(color, 1.0);
 }

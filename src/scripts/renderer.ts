@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { mat4, vec3 } from "gl-matrix";
-import { LightInfo, TextureInfo, BufferInfo, GLSystem } from "./gl-system";
+import { LightInfo, TextureInfo, VertexInfo, GLSystem } from "./gl-system";
 import { Program } from "./program";
 import { Drawable } from "./drawable";
 import { Camera } from "./camera";
@@ -117,16 +117,14 @@ export class Renderer {
     // Tell WebGL to use our program when drawing
     program.Use();
 
+    const vertexInfo = drawable.vertex;
+
     // set attributes
-    _.map(program.attributeNames, (id: string) => {
-      const name = id.substring(2) + "s";
-      const bufferInfo = drawable.buffers[name];
-      if (bufferInfo) {
-        program.SetAttribute(id, bufferInfo.buffer, bufferInfo.rawDataType);
-      } else {
-        console.error("Drawable buffer:" + name + " not exsit");
-      }
-    });
+    gl.bindVertexArray(vertexInfo.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
+    if (vertexInfo.ebo) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexInfo.ebo);
+    }
 
     // set textures
     _.map(program.textureNames, (id: string) => {
@@ -148,25 +146,15 @@ export class Renderer {
       default: break;
     }
 
-    const indices = drawable.buffers.indices;
-    if (indices && indices.buffer) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices.buffer);
-
-      const vertexCount = indices.rawData.length;
+    if (vertexInfo.ebo) {
+      const vertexCount = vertexInfo.count;
       const type = gl.UNSIGNED_SHORT;
       const offset = 0;
       gl.drawElements(mode, vertexCount, type, offset);
     } else {
-      // positions should exist
-      const positions = drawable.buffers.positions;
-      let vertexComponent = 3;
-      switch (positions.rawDataType) {
-        case DataType.Float2: vertexComponent = 2; break;
-        case DataType.Float4: vertexComponent = 4; break;
-        default: break;
-      }
-      const vertexCount = Math.round(positions.rawData.length / vertexComponent);
-      gl.drawArrays(mode, 0, vertexCount);
+      const vertexCount = vertexInfo.count;
+      const first = 0;
+      gl.drawArrays(mode, first, vertexCount);
     }
   }
 

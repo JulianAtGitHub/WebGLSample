@@ -16,10 +16,13 @@ export interface TextureInfo {
   height: number;
 }
 
-export interface BufferInfo {
-  buffer: WebGLBuffer;
-  rawData: number[];
-  rawDataType: DataType;
+export interface VertexInfo {
+  vao: WebGLVertexArrayObject;
+  vbo: WebGLBuffer; // vertex buffer
+  ebo?: WebGLBuffer; // element buffer
+  // Count is element count if ebo is exist
+  // Count is vertex count if ebo is not exist
+  count: number;
 }
 
 // return value is power of two
@@ -247,7 +250,7 @@ export class GLSystem {
     });
   }
 
-  private CreateBufferObject(data: Data, type: number): WebGLBuffer {
+  public CreateBufferObject(data: number[], type: DataType, isElement: boolean = false): WebGLBuffer {
     if (!data) {
       return null;
     }
@@ -257,32 +260,86 @@ export class GLSystem {
     // Create a buffer object.
     const buffer = gl.createBuffer();
 
+    const target = (isElement === true ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER);
+
     // Select the buffer object as the one to apply data
-    gl.bindBuffer(type, buffer);
-    switch(data.type) {
+    gl.bindBuffer(target, buffer);
+    switch(type) {
+      case DataType.Float:
       case DataType.Float2:
       case DataType.Float3:
       case DataType.Float4:
-        gl.bufferData(type, new Float32Array(data.data), gl.STATIC_DRAW);
+        gl.bufferData(target, new Float32Array(data), gl.STATIC_DRAW);
         break;
       case DataType.Int:
-        gl.bufferData(type, new Uint16Array(data.data), gl.STATIC_DRAW);
+        gl.bufferData(target, new Uint16Array(data), gl.STATIC_DRAW);
         break;
       default:
         console.error("CreateBufferObject: invalid buffer type " + type);
         break;
     }
-    gl.bindBuffer(type, null);
+    gl.bindBuffer(target, null);
     return buffer;
   }
 
-  public CreateBuffer(data: Data): WebGLBuffer {
-    return this.CreateBufferObject(data, this.gl.ARRAY_BUFFER);
+  public CreateVertexInfo(vertices: Data, indices: Data | null): VertexInfo {
+    if (!vertices || !vertices.data) {
+      return null;
+    }
+
+    const gl = this.gl;
+
+    const vao = gl.createVertexArray();
+    const vbo = this.CreateBufferObject(vertices.data, DataType.Float, false);
+    const ebo = (indices ? this.CreateBufferObject(indices.data, DataType.Int, true): null);
+
+    // setup vertex array
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    if (ebo) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    }
+
+    const sizeOfFloat = 4;
+    // calculate stride
+    let stride = 0;
+    for (let i = 0; i < vertices.layouts.length; ++i) {
+      const layout = vertices.layouts[i];
+      switch(layout.type) {
+        case DataType.Float: stride += sizeOfFloat; break;
+        case DataType.Float2: stride += 2 * sizeOfFloat; break;
+        case DataType.Float3: stride += 3 * sizeOfFloat; break;
+        case DataType.Float4: stride += 4 * sizeOfFloat; break;
+        default: console.error("Invalod layout data type in vertices, type:" + layout.type);
+      }
+    }
+
+    let offset = 0;
+    for (let i = 0; i < vertices.layouts.length; ++i) {
+      const layout = vertices.layouts[i];
+      gl.enableVertexAttribArray(i);
+      let size = 0;
+      switch(layout.type) {
+        case DataType.Float: size = 1; break;
+        case DataType.Float2: size = 2; break;
+        case DataType.Float3: size = 3; break;
+        case DataType.Float4: size = 4; break;
+        default: console.error("Invalod layout data type in vertices, type:" + layout.type);
+      }
+      gl.vertexAttribPointer(i, size, gl.FLOAT, false, stride, offset);
+
+      offset += size * sizeOfFloat;
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
+
+    const count = (ebo !== null ? indices.data.length : vertices.data.length / (stride / sizeOfFloat));
+
+    return {vao, vbo, ebo, count};
   }
 
-  public CreateElementBuffer(data: Data): WebGLBuffer {
-    return this.CreateBufferObject(data, this.gl.ELEMENT_ARRAY_BUFFER);
-  }
 
   public CheckBindedFramebufferStatus(): boolean {
     const gl = this.gl;

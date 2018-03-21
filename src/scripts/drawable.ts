@@ -1,15 +1,17 @@
 import * as _ from "lodash";
 import { vec3, mat4, mat3 } from "gl-matrix";
 import { PrimitiveMode, Data, Model } from "./model";
-import { TextureInfo, BufferInfo, GLSystem} from "./gl-system";
+import { TextureInfo, VertexInfo, GLSystem} from "./gl-system";
 
 export class Drawable {
-  public buffers: {[id: string]: BufferInfo};
   public textures: {[id: string]: TextureInfo};
   public values: {[id: string]: any};
 
   private _primitiveMode: PrimitiveMode;
   public get primitiveMode(): PrimitiveMode { return this._primitiveMode; }
+
+  private _vertex: VertexInfo;
+  public get vertex(): VertexInfo { return this._vertex; }
 
   private _position: vec3;
   private _rotation: vec3;
@@ -24,8 +26,7 @@ export class Drawable {
     this._rotation = vec3.fromValues(0.0, 0.0, 0.0);
     this._scale = vec3.fromValues(1.0, 1.0, 1.0);
 
-    this.buffers = {};
-    this.LoadBuffers(model, glSystem);
+    this.LoadVertices(model, glSystem);
 
     this.textures = {};
     this.LoadTextures(model, glSystem);
@@ -36,31 +37,13 @@ export class Drawable {
     this._isDirty = true;
   }
 
-  private LoadBuffers(model: Model, glSystem: GLSystem) {
+  private LoadVertices(model: Model, glSystem: GLSystem) {
     if (!model || !glSystem) {
       return;
     }
 
-    if (model.positions) { this.buffers.positions = this.LoadBuffer(model.positions, glSystem, {isElement: false}); }
-    if (model.normals) { this.buffers.normals = this.LoadBuffer(model.normals, glSystem, {isElement: false}); }
-    if (model.texCoords) { this.buffers.texCoords = this.LoadBuffer(model.texCoords, glSystem, {isElement: false}); }
-    if (model.colors) { this.buffers.colors = this.LoadBuffer(model.colors, glSystem, {isElement: false}); }
-    if (model.indices) { this.buffers.indices = this.LoadBuffer(model.indices, glSystem, {isElement: true}); }
+    this._vertex = glSystem.CreateVertexInfo(model.vertices, model.indices);
     this._primitiveMode = model.primitive;
-  }
-
-  private LoadBuffer(data: Data, glSystem: GLSystem, options: {isElement: boolean}): BufferInfo {
-    if (!data || !glSystem) {
-      return null;
-    }
-
-    const bufferInfo = {
-      rawData: data.data,
-      rawDataType: data.type,
-      buffer: options.isElement ? glSystem.CreateElementBuffer(data) : glSystem.CreateBuffer(data)
-    };
-
-    return bufferInfo;
   }
 
   private LoadTextures(model: Model, glSystem: GLSystem) {

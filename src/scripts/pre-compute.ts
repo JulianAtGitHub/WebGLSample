@@ -271,12 +271,12 @@ export class PreCompute {
   private RenderToCubeMap(target: WebGLTexture, program: Program, mipLevel: number = 0) {
     const gl = this.glSystem.context;
 
-    const indexBuffer = this.unitCube.buffers.indices;
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
+    const vertexInfo = this.unitCube.vertex;
+    gl.bindVertexArray(vertexInfo.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
+    if (vertexInfo.ebo) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexInfo.ebo);
+    }
 
     for (let i = 0; i < this.cubemapTargets.length; ++i) {
       program.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
@@ -285,13 +285,7 @@ export class PreCompute {
 
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      const positions = this.unitCube.buffers.positions;
-      program.SetAttribute("a_position", positions.buffer, positions.rawDataType);
-
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.buffer);
-      const vertexCount = indexBuffer.rawData.length;
-
-      gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+      gl.drawElements(gl.TRIANGLES, vertexInfo.count, gl.UNSIGNED_SHORT, 0);
     }
   }
 
@@ -396,8 +390,6 @@ export class PreCompute {
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
-    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
     this.state = State.GenerateBRDFLookUpMap;
   }
 
@@ -437,12 +429,10 @@ export class PreCompute {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const positions = this.unitQuad.buffers.positions;
-    this.brdfGenProgram.SetAttribute("a_position", positions.buffer, positions.rawDataType);
-    const texCoords = this.unitQuad.buffers.texCoords;
-    this.brdfGenProgram.SetAttribute("a_texCoord", texCoords.buffer, texCoords.rawDataType);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    const vertexInfo = this.unitQuad.vertex;
+    gl.bindVertexArray(vertexInfo.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexInfo.vbo);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexInfo.count);
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 

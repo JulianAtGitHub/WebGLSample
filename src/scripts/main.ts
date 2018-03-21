@@ -19,7 +19,7 @@ function SetIBLTextureToDrawable(drawable: Drawable, preCompute: PreCompute) {
 
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
-  const gl = canvas.getContext("webgl");
+  const gl = canvas.getContext("webgl2");
   if (!gl) {
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
     return;

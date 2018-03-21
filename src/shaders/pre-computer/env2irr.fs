@@ -1,10 +1,12 @@
-// environment cube map to irradiance cube map
-
 precision mediump float;
 
-varying vec3 v_position;
+// environment cube map to irradiance cube map
 
 uniform samplerCube u_envMap;
+
+in vec3 v_position;
+
+out vec4 o_fragColor;
 
 const float PI = 3.14159265359;
 const float PI_2 = 1.570796326795; // PI / 2.0
@@ -30,11 +32,11 @@ void main(void) {
     for (float theta = 0.0; theta < PI_2; theta += sampleDelta) {
       vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
       vec3 worldSample = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
-      irradiance += textureCube(u_envMap, worldSample).rgb * cos(theta) * sin(theta);
+      irradiance += texture(u_envMap, worldSample).rgb * cos(theta) * sin(theta);
       nrSamples ++;
     }
   }
 
   irradiance = PI * irradiance * (1.0 / nrSamples);
-  gl_FragColor = vec4(irradiance, 1.0);
+  o_fragColor = vec4(irradiance, 1.0);
 }

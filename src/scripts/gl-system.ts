@@ -16,10 +16,13 @@ export interface TextureInfo {
   height: number;
 }
 
-export interface BufferInfo {
-  buffer: WebGLBuffer;
-  rawData: number[];
-  rawDataType: DataType;
+export interface VertexInfo {
+  vao: WebGLVertexArrayObject;
+  vbo: WebGLBuffer; // vertex buffer
+  ebo?: WebGLBuffer; // element buffer
+  // Count is element count if ebo is exist
+  // Count is vertex count if ebo is not exist
+  count: number;
 }
 
 // return value is power of two
@@ -28,11 +31,11 @@ export function IsPOT(value: number): boolean {
 }
 
 const DependentedExts = [
-  "EXT_shader_texture_lod",
-  "OES_standard_derivatives",
-  "OES_texture_float",
+  "EXT_color_buffer_float",
   "OES_texture_float_linear"
 ];
+
+const ShaderVersion = `#version 300 es \n`;
 
 export class GLSystem {
 
@@ -41,13 +44,13 @@ export class GLSystem {
   private _isReliable: boolean = true;
   public get isReliable(): boolean { return this._isReliable; }
 
-  public constructor(private gl: WebGLRenderingContext) {
+  public constructor(private gl: WebGL2RenderingContext) {
     _.map(DependentedExts, (ext) => {
       !this.GetExtension(ext) && (this._isReliable = false);
     });
   }
 
-  public get context(): WebGLRenderingContext {
+  public get context(): WebGL2RenderingContext {
     return this.gl;
   }
 
@@ -130,7 +133,7 @@ export class GLSystem {
     return textureInfo;
   }
 
-  public CreateRadianceHDRTexture(url: string): TextureInfo {
+  public CreateHDRTexture(url: string): TextureInfo {
     if (!url) {
       return null;
     }
@@ -140,7 +143,7 @@ export class GLSystem {
     const texture = gl.createTexture();
 
     const level = 0;
-    const internalFormat = gl.RGB;
+    const internalFormat = gl.RGB16F;
     const width = 1;
     const height = 1;
     const border = 0;
@@ -204,8 +207,10 @@ export class GLSystem {
       });
     }
 
-    const vertexShader = this.LoadShader(preprocessor + vsSource, gl.VERTEX_SHADER);
-    const fragmentShader = this.LoadShader(preprocessor + fsSource, gl.FRAGMENT_SHADER);
+    const prefix = ShaderVersion + preprocessor;
+
+    const vertexShader = this.LoadShader(prefix + vsSource, gl.VERTEX_SHADER);
+    const fragmentShader = this.LoadShader(prefix + fsSource, gl.FRAGMENT_SHADER);
   
     // Create the shader program
     const shaderProgram = gl.createProgram();
@@ -245,7 +250,7 @@ export class GLSystem {
     });
   }
 
-  private CreateBufferObject(data: Data, type: number): WebGLBuffer {
+  public CreateBufferObject(data: number[], type: DataType, isElement: boolean = false): WebGLBuffer {
     if (!data) {
       return null;
     }
@@ -255,31 +260,121 @@ export class GLSystem {
     // Create a buffer object.
     const buffer = gl.createBuffer();
 
+    const target = (isElement === true ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER);
+
     // Select the buffer object as the one to apply data
-    gl.bindBuffer(type, buffer);
-    switch(data.type) {
+    gl.bindBuffer(target, buffer);
+    switch(type) {
+      case DataType.Float:
       case DataType.Float2:
       case DataType.Float3:
       case DataType.Float4:
-        gl.bufferData(type, new Float32Array(data.data), gl.STATIC_DRAW);
+        gl.bufferData(target, new Float32Array(data), gl.STATIC_DRAW);
         break;
       case DataType.Int:
-        gl.bufferData(type, new Uint16Array(data.data), gl.STATIC_DRAW);
+        gl.bufferData(target, new Uint16Array(data), gl.STATIC_DRAW);
         break;
       default:
         console.error("CreateBufferObject: invalid buffer type " + type);
         break;
     }
-    gl.bindBuffer(type, null);
+    gl.bindBuffer(target, null);
     return buffer;
   }
 
-  public CreateBuffer(data: Data): WebGLBuffer {
-    return this.CreateBufferObject(data, this.gl.ARRAY_BUFFER);
+  public CreateVertexInfo(vertices: Data, indices: Data | null): VertexInfo {
+    if (!vertices || !vertices.data) {
+      return null;
+    }
+
+    const gl = this.gl;
+
+    const vbo = this.CreateBufferObject(vertices.data, DataType.Float, false);
+    const ebo = (indices ? this.CreateBufferObject(indices.data, DataType.Int, true): null);
+    const vao = gl.createVertexArray();
+
+    // setup vertex array
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+
+    const sizeOfFloat = 4;
+    // calculate stride
+    let stride = 0;
+    for (let i = 0; i < vertices.layouts.length; ++i) {
+      const layout = vertices.layouts[i];
+      switch(layout.type) {
+        case DataType.Float: stride += sizeOfFloat; break;
+        case DataType.Float2: stride += 2 * sizeOfFloat; break;
+        case DataType.Float3: stride += 3 * sizeOfFloat; break;
+        case DataType.Float4: stride += 4 * sizeOfFloat; break;
+        default: console.error("Invalod layout data type in vertices, type:" + layout.type);
+      }
+    }
+
+    let offset = 0;
+    for (let i = 0; i < vertices.layouts.length; ++i) {
+      const layout = vertices.layouts[i];
+      gl.enableVertexAttribArray(layout.usage);
+      let size = 0;
+      switch(layout.type) {
+        case DataType.Float: size = 1; break;
+        case DataType.Float2: size = 2; break;
+        case DataType.Float3: size = 3; break;
+        case DataType.Float4: size = 4; break;
+        default: console.error("Invalod layout data type in vertices, type:" + layout.type);
+      }
+      gl.vertexAttribPointer(layout.usage, size, gl.FLOAT, false, stride, offset);
+
+      offset += size * sizeOfFloat;
+    }
+
+    if (ebo) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    }
+
+    gl.bindVertexArray(null);
+
+    const count = (ebo !== null ? indices.data.length : vertices.data.length / (stride / sizeOfFloat));
+
+    return {vao, vbo, ebo, count};
   }
 
-  public CreateElementBuffer(data: Data): WebGLBuffer {
-    return this.CreateBufferObject(data, this.gl.ELEMENT_ARRAY_BUFFER);
+
+  public CheckBindedFramebufferStatus(): boolean {
+    const gl = this.gl;
+
+    let isSuccess = false;
+    const fbStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    switch (fbStatus) {
+      case gl.FRAMEBUFFER_COMPLETE: console.log("Frame Buffer Status: FRAMEBUFFER_COMPLETE"); isSuccess = true; break;
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_DIMENSIONS"); break;
+      case gl.FRAMEBUFFER_UNSUPPORTED: console.error("Frame Buffer Status: FRAMEBUFFER_UNSUPPORTED"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_MULTISAMPLE"); break;
+      default: console.error("Frame Buffer Status:" + fbStatus); break;
+    }
+
+    return isSuccess;
+  }
+
+  public CheckError(): boolean {
+    const gl = this.gl;
+
+    let isNoError = false;
+    const error = gl.getError();
+    switch (error) {
+      case gl.NO_ERROR: console.log("WebGL Error: NO_ERROR"); isNoError = true; break;
+      case gl.INVALID_ENUM: console.error("WebGL Error: INVALID_ENUM"); break;
+      case gl.INVALID_VALUE: console.error("WebGL Error: INVALID_VALUE"); break;
+      case gl.INVALID_OPERATION: console.error("WebGL Error: INVALID_OPERATION"); break;
+      case gl.INVALID_FRAMEBUFFER_OPERATION: console.error("WebGL Error: INVALID_FRAMEBUFFER_OPERATION"); break;
+      case gl.OUT_OF_MEMORY: console.error("WebGL Error: OUT_OF_MEMORY"); break;
+      case gl.CONTEXT_LOST_WEBGL: console.error("WebGL Error: CONTEXT_LOST_WEBGL"); break;
+      default: console.error("WebGL Error:" + error); break;
+    }
+
+    return isNoError;
   }
 
 }

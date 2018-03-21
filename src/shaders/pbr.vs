@@ -1,14 +1,14 @@
-attribute vec3 a_position;
-attribute vec3 a_normal;
-attribute vec2 a_texCoord;
-
 uniform mat4 u_modelMatrix;
 uniform mat3 u_normalMatrix;
 uniform mat4 u_viewProjMatrix;
 
-varying vec3 v_position;
-varying vec3 v_normal;
-varying vec2 v_texCoord;
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec3 a_normal;
+layout (location = 2) in vec2 a_texCoord;
+
+out vec3 v_position;
+out vec3 v_normal;
+out vec2 v_texCoord;
 
 void main(void) {
   vec4 position = u_modelMatrix * vec4(a_position, 1.0);

@@ -16,21 +16,29 @@ export enum DataType {
   Int
 }
 
+export enum DataUsage {
+  position,
+  normal,
+  texCoord,
+  color,
+  index
+}
+
 export enum TextureType {
   Texture2D,
   TextureCubeMap
 }
 
 export interface Data {
-  type: DataType;
   data: number[];
+  layouts: {
+    type: DataType;
+    usage: DataUsage;
+  } [];
 }
 
 export interface Model {
-  positions: Data;
-  normals?: Data;
-  texCoords?: Data;
-  colors?: Data;
+  vertices: Data;
   indices?: Data;
   primitive: PrimitiveMode;
 
@@ -57,9 +65,10 @@ export function CreateSphere(): Model {
   const Y_SEGMENTS = 64;
   const PI = 3.14159265359;
 
-  const positions: number[] = [];
-  const texCoords: number[] = [];
-  const normals: number[] = [];
+  // const positions: number[] = [];
+  // const texCoords: number[] = [];
+  // const normals: number[] = [];
+  const vertices: number[] = [];
   const indices: number[] = [];
 
   for (let y = 0; y <= Y_SEGMENTS; ++y) {
@@ -70,9 +79,10 @@ export function CreateSphere(): Model {
       const yPos = Math.cos(ySegment * PI);
       const zPos = Math.sin(xSegment * 2.0 * PI) * Math.sin(ySegment * PI);
 
-      positions.push(xPos, yPos, zPos);
-      texCoords.push(xSegment, ySegment);
-      normals.push(xPos, yPos, zPos);
+      vertices.push(xPos, yPos, zPos);  // position
+      vertices.push(xPos, yPos, zPos);  // normal
+      vertices.push(xSegment, ySegment);// texCoord
+      
     }
   }
 
@@ -95,20 +105,28 @@ export function CreateSphere(): Model {
   }
 
   return {
-    positions: {
-      type: DataType.Float3,
-      data: positions
-    },
-    normals: {
-      type: DataType.Float3,
-      data: normals
-    },
-    texCoords: {
-      type: DataType.Float2,
-      data: texCoords
+    vertices: {
+      layouts: [
+        {
+          type: DataType.Float3,
+          usage: DataUsage.position
+        }, {
+          type: DataType.Float3,
+          usage: DataUsage.normal
+        }, {
+          type: DataType.Float2,
+          usage: DataUsage.texCoord
+        }
+      ],
+      data: vertices
     },
     indices: {
-      type: DataType.Int,
+      layouts: [
+        {
+          type: DataType.Int,
+          usage: DataUsage.index
+        }
+      ],
       data: indices
     },
     primitive: PrimitiveMode.TriangleStrip,
@@ -117,8 +135,13 @@ export function CreateSphere(): Model {
 
 export function CreateSkybox(): Model {
   return {
-    positions: {
-      type: DataType.Float3,
+    vertices: {
+      layouts: [
+        {
+          type: DataType.Float3,
+          usage: DataUsage.position
+        }
+      ],
       data: [
         // Back face
         -1.0, -1.0, -1.0, //0
@@ -153,7 +176,12 @@ export function CreateSkybox(): Model {
       ]
     },
     indices: {
-      type: DataType.Int,
+      layouts: [
+        {
+          type: DataType.Int,
+          usage: DataUsage.index
+        }
+      ],
       data: [
         0,  2,  3,    2,  0,  1,    // back
         4,  5,  6,    6,  7,  4,    // front
@@ -169,81 +197,57 @@ export function CreateSkybox(): Model {
 
 export function CreateCube(): Model {
   return {
-
-    positions: {
-      type: DataType.Float3,
+    vertices: {
+      layouts: [
+        {
+          type: DataType.Float3,
+          usage: DataUsage.position
+        }, {
+          type: DataType.Float2,
+          usage: DataUsage.texCoord
+        }
+      ],
       data: [
-        // Front face
-        -1.0, -1.0,  1.0,
-         1.0, -1.0,  1.0,
-         1.0,  1.0,  1.0,
-        -1.0,  1.0,  1.0,
+        // position        texCoord
+        // Front face 
+        -1.0, -1.0,  1.0,  0.0,  0.0,
+         1.0, -1.0,  1.0,  1.0,  0.0,
+         1.0,  1.0,  1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,  0.0,  1.0,
         // Back face
-        -1.0, -1.0, -1.0,
-        -1.0,  1.0, -1.0,
-         1.0,  1.0, -1.0,
-         1.0, -1.0, -1.0,
+        -1.0, -1.0, -1.0,  0.0,  0.0,
+        -1.0,  1.0, -1.0,  1.0,  0.0,
+         1.0,  1.0, -1.0,  1.0,  1.0,
+         1.0, -1.0, -1.0,  0.0,  1.0,
         // Top face
-        -1.0,  1.0, -1.0,
-        -1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,
-         1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0,  0.0,  0.0,
+        -1.0,  1.0,  1.0,  1.0,  0.0,
+         1.0,  1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0, -1.0,  0.0,  1.0,
         // Bottom face
-        -1.0, -1.0, -1.0,
-         1.0, -1.0, -1.0,
-         1.0, -1.0,  1.0,
-        -1.0, -1.0,  1.0,
+        -1.0, -1.0, -1.0,  0.0,  0.0,
+         1.0, -1.0, -1.0,  1.0,  0.0,
+         1.0, -1.0,  1.0,  1.0,  1.0,
+        -1.0, -1.0,  1.0,  0.0,  1.0,
         // Right face
-         1.0, -1.0, -1.0,
-         1.0,  1.0, -1.0,
-         1.0,  1.0,  1.0,
-         1.0, -1.0,  1.0,
+         1.0, -1.0, -1.0,  0.0,  0.0,
+         1.0,  1.0, -1.0,  1.0,  0.0,
+         1.0,  1.0,  1.0,  1.0,  1.0,
+         1.0, -1.0,  1.0,  0.0,  1.0,
         // Left face
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0,  1.0,
-        -1.0,  1.0,  1.0,
-        -1.0,  1.0, -1.0,
+        -1.0, -1.0, -1.0,  0.0,  0.0,
+        -1.0, -1.0,  1.0,  1.0,  0.0,
+        -1.0,  1.0,  1.0,  1.0,  1.0,
+        -1.0,  1.0, -1.0,  0.0,  1.0,
       ]
     },
-
-    texCoords: {
-      type: DataType.Float2,
-      data: [
-        // Front
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-        // Back
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-        // Top
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-        // Bottom
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-        // Right
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-        // Left
-        0.0,  0.0,
-        1.0,  0.0,
-        1.0,  1.0,
-        0.0,  1.0,
-      ]
-    },
-
     indices: {
-      type: DataType.Int,
+      layouts: [
+        {
+          type: DataType.Int,
+          usage: DataUsage.index
+        }
+      ],
       data: [
         0,  1,  2,      0,  2,  3,    // front
         4,  5,  6,      4,  6,  7,    // back
@@ -260,22 +264,21 @@ export function CreateCube(): Model {
 
 export function CreateQuad(): Model {
   return {
-    positions: {
-      type: DataType.Float3,
+    vertices: {
+      layouts: [
+        {
+          type: DataType.Float3,
+          usage: DataUsage.position
+        }, {
+          type: DataType.Float2,
+          usage: DataUsage.texCoord
+        }
+      ],
       data: [
-        -1.0,  1.0, 0.0,
-        -1.0, -1.0, 0.0,
-         1.0,  1.0, 0.0,
-         1.0, -1.0, 0.0
-      ]
-    },
-    texCoords: {
-      type: DataType.Float2,
-      data: [
-        0.0, 1.0,
-        0.0, 0.0,
-        1.0, 1.0,
-        1.0, 0.0
+        -1.0,  1.0,  0.0,  0.0,  1.0,
+        -1.0, -1.0,  0.0,  0.0,  0.0,
+         1.0,  1.0,  0.0,  1.0,  1.0,
+         1.0, -1.0,  0.0,  1.0,  0.0,
       ]
     },
     primitive: PrimitiveMode.TriangleStrip

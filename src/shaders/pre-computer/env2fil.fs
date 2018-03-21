@@ -1,37 +1,34 @@
-// full environment cube map to pre-filtering environment cube map
-#extension GL_EXT_shader_texture_lod : enable
 precision mediump float;
 
-varying vec3 v_position;
+// full environment cube map to pre-filtering environment cube map
 
 uniform samplerCube u_envMap;
 
 uniform float u_roughness;
 uniform float u_resolution;
 
+in vec3 v_position;
+
+out vec4 o_fragColor;
+
 const float PI = 3.14159265359;
 const float PI2 = 6.28318530718;  // PI * 2.0
-const int SAMPLE_COUNT = 1024;
+const uint SAMPLE_COUNT = 1024u;
 
-float VanDerCorpus(int n, int base) {
-  float invBase = 1.0 / float(base);
-  float denom = 1.0;
-  float result = 0.0;
-
-  for (int i = 0; i < 32; ++i) {
-    if (n > 0) {
-      denom = mod(float(n), 2.0);
-      result += denom * invBase;
-      invBase = invBase / 2.0;
-      n = int(float(n) / 2.0);
-    }
-  }
-
-  return result;
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// Efficient VanDerCorpus calculation.
+float RadicalInverse_VdC(uint bits) 
+{
+     bits = (bits << 16u) | (bits >> 16u);
+     bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+     bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+     bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+     bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
-vec2 Hammersley(int i, int N) {
-  return vec2(float(i)/float(N), VanDerCorpus(i, 2));
+vec2 Hammersley(uint i, uint N) {
+  return vec2(float(i)/float(N), RadicalInverse_VdC(i));
 }
 
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {
@@ -72,7 +69,7 @@ void main(void) {
 
   float totalWeight = 0.0;
   vec3 prefilteredColor = vec3(0.0);
-  for (int i = 0; i < SAMPLE_COUNT; ++i) {
+  for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
     vec2 Xi = Hammersley(i, SAMPLE_COUNT);
     vec3 H = ImportanceSampleGGX(Xi, N, u_roughness);
     vec3 L = normalize(2.0 * dot(V, H) * H - V);
@@ -89,11 +86,11 @@ void main(void) {
       float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
       float mipLevel = u_roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
-      prefilteredColor += textureCubeLodEXT(u_envMap, L, mipLevel).rgb * NdotL;
+      prefilteredColor += textureLod(u_envMap, L, mipLevel).rgb * NdotL;
       totalWeight += NdotL;
     }
   }
 
   prefilteredColor /= totalWeight;
-  gl_FragColor = vec4(prefilteredColor, 1.0);
+  o_fragColor = vec4(prefilteredColor, 1.0);
 }

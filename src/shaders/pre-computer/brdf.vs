@@ -1,7 +1,7 @@
-attribute vec3 a_position;
-attribute vec2 a_texCoord;
+layout (location = 0) in vec3 a_position;
+layout (location = 2) in vec2 a_texCoord;
 
-varying vec2 v_texCoord;
+out vec2 v_texCoord;
 
 void main(void) {
   v_texCoord = a_texCoord;

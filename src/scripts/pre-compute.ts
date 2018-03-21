@@ -42,7 +42,8 @@ export class PreCompute {
   // temp properties
   private shpereMap: TextureInfo;
   private captureFBO: WebGLFramebuffer;
-  private captureRBO: WebGLRenderbuffer;
+  private captureCBO: WebGLRenderbuffer;  // color buffer
+  private captureDBO: WebGLRenderbuffer;  // depth buffer
 
   public constructor(private glSystem: GLSystem) {
     this.unitCube = null;
@@ -86,7 +87,8 @@ export class PreCompute {
     ];
 
     this.captureFBO = null;
-    this.captureRBO = null;
+    this.captureCBO = null;
+    this.captureDBO = null;
 
     this.PrepareRenderObjects();
   }
@@ -131,7 +133,7 @@ export class PreCompute {
 
   public set image(image: string) {
     this.state = State.LoadRadianceTexture;
-    this.shpereMap = this.glSystem.CreateRadianceHDRTexture(image);
+    this.shpereMap = this.glSystem.CreateHDRTexture(image);
   }
 
   public update() {
@@ -240,9 +242,9 @@ export class PreCompute {
     const gl = this.glSystem.context;
 
     const level = 0;
-    const internalFormat = gl.RGB;
+    const internalFormat = gl.RGBA16F;
     const border = 0;
-    const srcFormat = gl.RGB;
+    const srcFormat = gl.RGBA;
     const srcType = gl.FLOAT;
 
     const cubeMap = gl.createTexture();
@@ -252,6 +254,7 @@ export class PreCompute {
     }
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
@@ -265,30 +268,23 @@ export class PreCompute {
     return cubeMap;
   }
 
-  private RenderToCubeMap(target: WebGLTexture, program: Program) {
+  private RenderToCubeMap(target: WebGLTexture, program: Program, mipLevel: number = 0) {
     const gl = this.glSystem.context;
 
-    const indexBuffer = this.unitCube.buffers.indices;
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
+    const vertexInfo = this.unitCube.vertex;
+    gl.bindVertexArray(vertexInfo.vao);
 
     for (let i = 0; i < this.cubemapTargets.length; ++i) {
       program.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
-      // For webgl1.0, mipmap must be zero. Otherwise error gl.INVALID_VALUE will throw
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], target, 0);
+
+      gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], target, mipLevel);
+
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      const positions = this.unitCube.buffers.positions;
-      program.SetAttribute("a_position", positions.buffer, positions.rawDataType);
-
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.buffer);
-      const vertexCount = indexBuffer.rawData.length;
-
-      gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+      gl.drawElements(gl.TRIANGLES, vertexInfo.count, gl.UNSIGNED_SHORT, 0);
     }
+
+    gl.bindVertexArray(null);
   }
 
   private RenderToEnvCubemap() {
@@ -299,12 +295,18 @@ export class PreCompute {
     const gl = this.glSystem.context;
 
     this.captureFBO = gl.createFramebuffer();
-    this.captureRBO = gl.createRenderbuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
+    this.captureCBO = gl.createRenderbuffer();
+    this.captureDBO = gl.createRenderbuffer();
 
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.envSize, this.envSize);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.captureRBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.captureFBO);
+  
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureCBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, this.envSize, this.envSize);
+    gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.captureCBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureDBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, this.envSize, this.envSize);
+    gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.captureDBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
@@ -320,8 +322,7 @@ export class PreCompute {
 
     this.RenderToCubeMap(this.envCubeMap, this.rad2envProgram);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.envCubeMap);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
@@ -334,9 +335,13 @@ export class PreCompute {
   private RenderToIrrCubemap() {
     const gl = this.glSystem.context;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.irrSize, this.irrSize);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.captureFBO);
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureCBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, this.irrSize, this.irrSize);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureDBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, this.irrSize, this.irrSize);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
     this.irrCubeMap = this.CreateCubeMap(this.irrSize);
 
@@ -347,8 +352,7 @@ export class PreCompute {
 
     this.RenderToCubeMap(this.irrCubeMap, this.env2irrProgram);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
     this.state = State.CalculatePreFilterMap;
   }
@@ -356,83 +360,33 @@ export class PreCompute {
   private RenderToPreFilterMap() {
     const gl = this.glSystem.context;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.captureFBO);
+
+    this.filCubeMap = this.CreateCubeMap(this.filSize, true);
 
     this.env2filProgram.Use();
     this.env2filProgram.SetUniform("u_resolution", this.envSize, DataType.Float);
-
-    this.filCubeMap = this.CreateCubeMap(this.filSize, true);
+    this.env2filProgram.SetTexture("u_envMap", this.envCubeMap, TextureType.TextureCubeMap);
 
     const maxMipmapLevels = 5;
     for (let mipmap = 0; mipmap < maxMipmapLevels; ++mipmap) {
       const size = Math.round(this.filSize * Math.pow(0.5, mipmap));
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
-      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureCBO);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, size, size);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureDBO);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, size, size);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
       gl.viewport(0, 0, size, size);
 
       const roughness = mipmap / (maxMipmapLevels - 1.0);
       this.env2filProgram.SetUniform("u_roughness", roughness, DataType.Float);
-      
-      // For webgl1.0, render target not support specify a mipmap level of texture
-      // So create a render target without mipmap and copy pixels to target mipmaps of original texture after finished
-      {
-        const indexBuffer = this.unitCube.buffers.indices;
-        const numComponents = 3;
-        const type = gl.FLOAT;
-        const normalize = false;
-        const stride = 0;
-        const offset = 0;
 
-        const internalFormat = gl.RGB;
-        const border = 0;
-        const targetFormat = gl.RGBA;
-        const srcFormat = gl.RGB;
-
-        const renderTarget = this.CreateCubeMap(size);
-    
-        for (let i = 0; i < this.cubemapTargets.length; ++i) {
-          this.env2filProgram.SetTexture("u_envMap", this.envCubeMap, TextureType.TextureCubeMap);
-          this.env2filProgram.SetUniform("u_viewProjMatrix", this.viewProjMatrixes[i], DataType.Float4x4);
-
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this.cubemapTargets[i], renderTarget, 0);
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-          const positions = this.unitCube.buffers.positions;
-          this.env2filProgram.SetAttribute("a_position", positions.buffer, positions.rawDataType);
-    
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.buffer);
-          const vertexCount = indexBuffer.rawData.length;
-    
-          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
-    
-          // copy texture data to filCubeMap
-          const rbgas = new Float32Array(size * size * 4);
-          gl.bindTexture(gl.TEXTURE_CUBE_MAP, renderTarget);
-          gl.readPixels(0, 0, size, size, targetFormat, type, rbgas);
-          gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-
-          // remove alpha component
-          const rgbs = new Float32Array(size * size * 3);
-          for (let m = 0; m < size * size; ++m) {
-            rgbs[3 * m] = rbgas[4 * m];
-            rgbs[3 * m + 1] = rbgas[4 * m + 1];
-            rgbs[3 * m + 2] = rbgas[4 * m + 2];
-          }
-          gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.filCubeMap);
-          gl.texImage2D(this.cubemapTargets[i], mipmap, internalFormat, size, size, border, srcFormat, type, rgbs);
-          gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-        }
-
-        gl.deleteTexture(renderTarget);
-      }
+      this.RenderToCubeMap(this.filCubeMap, this.env2filProgram, mipmap);
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-
-    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
     this.state = State.GenerateBRDFLookUpMap;
   }
@@ -445,12 +399,11 @@ export class PreCompute {
     gl.bindTexture(gl.TEXTURE_2D, this.brdfLutMap);
 
     const level = 0;
-    const internalFormat = gl.RGB;
+    const internalFormat = gl.RG16F;
     const border = 0;
-    const srcFormat = gl.RGB;
+    const srcFormat = gl.RG;
     const srcType = gl.FLOAT;
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, this.lutSize, this.lutSize, border, srcFormat, srcType, null);
-
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -458,10 +411,15 @@ export class PreCompute {
 
     gl.bindTexture(gl.TEXTURE_2D, null);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.captureFBO);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureRBO);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.lutSize, this.lutSize);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.brdfLutMap, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.captureFBO);
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureCBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RG16F, this.lutSize, this.lutSize);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.captureDBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, this.lutSize, this.lutSize);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.brdfLutMap, 0);
 
     gl.viewport(0, 0, this.lutSize, this.lutSize);
 
@@ -469,16 +427,14 @@ export class PreCompute {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const positions = this.unitQuad.buffers.positions;
-    this.brdfGenProgram.SetAttribute("a_position", positions.buffer, positions.rawDataType);
-    const texCoords = this.unitQuad.buffers.texCoords;
-    this.brdfGenProgram.SetAttribute("a_texCoord", texCoords.buffer, texCoords.rawDataType);
+    const vertexInfo = this.unitQuad.vertex;
+    gl.bindVertexArray(vertexInfo.vao);
 
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexInfo.count);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     this.DeleteTempObjects();
 
@@ -489,10 +445,12 @@ export class PreCompute {
     const gl = this.glSystem.context;
 
     gl.deleteFramebuffer(this.captureFBO);
-    gl.deleteRenderbuffer(this.captureRBO);
+    gl.deleteRenderbuffer(this.captureCBO);
+    gl.deleteRenderbuffer(this.captureDBO);
 
     this.captureFBO = null;
-    this.captureRBO = null;
+    this.captureCBO = null;
+    this.captureDBO = null;
 
     gl.deleteTexture(this.shpereMap.texture);
     this.shpereMap = null;

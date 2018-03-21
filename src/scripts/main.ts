@@ -7,6 +7,16 @@ import { vec3 } from "gl-matrix";
 import * as Utils from "./utilities";
 import { PreCompute } from "./pre-compute";
 
+function SetIBLTextureToDrawable(drawable: Drawable, preCompute: PreCompute) {
+  if (!drawable || !preCompute) {
+    return;
+  }
+
+  drawable.textures.irradianceMap = preCompute.irrMap;
+  drawable.textures.prefilterMap = preCompute.filMap;
+  drawable.textures.brdfMap = preCompute.brdfMap;
+}
+
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
   const gl = canvas.getContext("webgl");
@@ -37,69 +47,35 @@ function Main(canvasId: string) {
   const camera = new Camera((45 * Math.PI / 180), (canvas.clientWidth / canvas.clientHeight));
   camera.HandleMouseInput(canvas);
 
-  const goldSphereModel = CreateSphere();
-  goldSphereModel.albedoMap = "assets/gold_albedo.png";
-  goldSphereModel.normalMap = "assets/gold_normal.png";
-  goldSphereModel.metallicMap = "assets/gold_metallic.png";
-  goldSphereModel.roughnessMap = "assets/gold_roughness.png";
-  goldSphereModel.aoMap = "assets/gold_ao.png";
+  const goldSphere = Utils.CreateGoldenSphere(glSystem);
+  const plasticSphere = Utils.CreatePlasticSphere(glSystem);
+  const ironSphere = Utils.CreateIronSphere(glSystem);
+  const sphere = Utils.CreateNoTexturedSphere(glSystem);
+  const box = new Drawable(CreateSkybox(), glSystem);
 
-  const goldSphere = new Drawable(goldSphereModel, glSystem);
   goldSphere.move([-1.1, 1.1, -8.0]);
-
-  const plasticSphereModel = CreateSphere();
-  plasticSphereModel.albedoMap = "assets/plastic_albedo.png";
-  plasticSphereModel.normalMap = "assets/plastic_normal.png";
-  plasticSphereModel.metallicMap = "assets/plastic_metallic.png";
-  plasticSphereModel.roughnessMap = "assets/plastic_roughness.png";
-  plasticSphereModel.aoMap = "assets/plastic_ao.png";
-
-  const plasticSphere = new Drawable(plasticSphereModel, glSystem);
   plasticSphere.move([-1.1, -1.1, -8.0]);
-
-  const ironSphereModel = CreateSphere();
-  ironSphereModel.albedoMap = "assets/iron_albedo.png";
-  ironSphereModel.normalMap = "assets/iron_normal.png";
-  ironSphereModel.metallicMap = "assets/iron_metallic.png";
-  ironSphereModel.roughnessMap = "assets/iron_roughness.png";
-  ironSphereModel.aoMap = "assets/iron_ao.png";
-
-  const ironSphere = new Drawable(ironSphereModel, glSystem);
   ironSphere.move([1.1, -1.1, -8.0]);
-
-  const sphereModel = CreateSphere();
-  sphereModel.albedo = vec3.fromValues(1.0, 1.0, 1.0);
-  sphereModel.metallic = 0.5;
-  sphereModel.roughness = 0.5;
-  sphereModel.ao = 0.5;
-  const sphere = new Drawable(sphereModel, glSystem);
   sphere.move([1.1, 1.1, -8.0]);
-
-  const boxModel = CreateSkybox();
-  const box = new Drawable(boxModel, glSystem);
 
   // debug
   const debugTexture2D = Utils.CreateDebugTexture2DProgram(glSystem);
-  const quadModel = CreateQuad();
-  const quad = new Drawable(quadModel, glSystem);
+  const quad = new Drawable(CreateQuad(), glSystem);
 
   // html elements
   const metallicSlider: any = document.getElementById("metallic");
   metallicSlider.oninput = () => {
     sphere.values.metallic = metallicSlider.value / 100.0;
-    // console.log("metallic:" + sphere.values.metallic);
   };
 
   const roughnessSlider: any = document.getElementById("roughness");
   roughnessSlider.oninput = () => {
     sphere.values.roughness = roughnessSlider.value / 100.0;
-    // console.log("roughness:" + sphere.values.roughness);
   };
 
   const aoSlider: any = document.getElementById("ao");
   aoSlider.oninput = () => {
     sphere.values.ao = aoSlider.value / 100.0;
-    // console.log("roughness:" + sphere.values.roughness);
   };
 
   const albedoCP: any = document.getElementById("albedo");
@@ -111,7 +87,7 @@ function Main(canvasId: string) {
     const b = parseInt(result[3], 16) / 255.0;
     sphere.values.albedo = vec3.fromValues(r, g, b);
   }, false);
-  
+
   // Draw the scene repeatedly
   let then = 0;
   let pbrImageSetted = false;
@@ -126,21 +102,10 @@ function Main(canvasId: string) {
 
     if (preCompute.isReady) {
       if (!pbrImageSetted) {
-        ironSphere.textures.irradianceMap = preCompute.irrMap;
-        ironSphere.textures.prefilterMap = preCompute.filMap;
-        ironSphere.textures.brdfMap = preCompute.brdfMap;
-
-        goldSphere.textures.irradianceMap = preCompute.irrMap;
-        goldSphere.textures.prefilterMap = preCompute.filMap;
-        goldSphere.textures.brdfMap = preCompute.brdfMap;
-
-        sphere.textures.irradianceMap = preCompute.irrMap;
-        sphere.textures.prefilterMap = preCompute.filMap;
-        sphere.textures.brdfMap = preCompute.brdfMap;
-
-        plasticSphere.textures.irradianceMap = preCompute.irrMap;
-        plasticSphere.textures.prefilterMap = preCompute.filMap;
-        plasticSphere.textures.brdfMap = preCompute.brdfMap;
+        SetIBLTextureToDrawable(ironSphere, preCompute);
+        SetIBLTextureToDrawable(goldSphere, preCompute);
+        SetIBLTextureToDrawable(plasticSphere, preCompute);
+        SetIBLTextureToDrawable(sphere, preCompute);
 
         box.textures.envMap = preCompute.envMap;
         pbrImageSetted = true;

@@ -28,8 +28,11 @@ export function IsPOT(value: number): boolean {
 }
 
 const DependentedExts = [
+  "EXT_color_buffer_float",
   "OES_texture_float_linear"
 ];
+
+const ShaderVersion = `#version 300 es \n`;
 
 export class GLSystem {
 
@@ -127,7 +130,7 @@ export class GLSystem {
     return textureInfo;
   }
 
-  public CreateRadianceHDRTexture(url: string): TextureInfo {
+  public CreateHDRTexture(url: string): TextureInfo {
     if (!url) {
       return null;
     }
@@ -137,7 +140,7 @@ export class GLSystem {
     const texture = gl.createTexture();
 
     const level = 0;
-    const internalFormat = gl.RGB;
+    const internalFormat = gl.RGB16F;
     const width = 1;
     const height = 1;
     const border = 0;
@@ -201,8 +204,10 @@ export class GLSystem {
       });
     }
 
-    const vertexShader = this.LoadShader(preprocessor + vsSource, gl.VERTEX_SHADER);
-    const fragmentShader = this.LoadShader(preprocessor + fsSource, gl.FRAGMENT_SHADER);
+    const prefix = ShaderVersion + preprocessor;
+
+    const vertexShader = this.LoadShader(prefix + vsSource, gl.VERTEX_SHADER);
+    const fragmentShader = this.LoadShader(prefix + fsSource, gl.FRAGMENT_SHADER);
   
     // Create the shader program
     const shaderProgram = gl.createProgram();
@@ -277,6 +282,43 @@ export class GLSystem {
 
   public CreateElementBuffer(data: Data): WebGLBuffer {
     return this.CreateBufferObject(data, this.gl.ELEMENT_ARRAY_BUFFER);
+  }
+
+  public CheckBindedFramebufferStatus(): boolean {
+    const gl = this.gl;
+
+    let isSuccess = false;
+    const fbStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    switch (fbStatus) {
+      case gl.FRAMEBUFFER_COMPLETE: console.log("Frame Buffer Status: FRAMEBUFFER_COMPLETE"); isSuccess = true; break;
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_DIMENSIONS"); break;
+      case gl.FRAMEBUFFER_UNSUPPORTED: console.error("Frame Buffer Status: FRAMEBUFFER_UNSUPPORTED"); break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: console.error("Frame Buffer Status: FRAMEBUFFER_INCOMPLETE_MULTISAMPLE"); break;
+      default: console.error("Frame Buffer Status:" + fbStatus); break;
+    }
+
+    return isSuccess;
+  }
+
+  public CheckError(): boolean {
+    const gl = this.gl;
+
+    let isNoError = false;
+    const error = gl.getError();
+    switch (error) {
+      case gl.NO_ERROR: console.log("WebGL Error: NO_ERROR"); isNoError = true; break;
+      case gl.INVALID_ENUM: console.error("WebGL Error: INVALID_ENUM"); break;
+      case gl.INVALID_VALUE: console.error("WebGL Error: INVALID_VALUE"); break;
+      case gl.INVALID_OPERATION: console.error("WebGL Error: INVALID_OPERATION"); break;
+      case gl.INVALID_FRAMEBUFFER_OPERATION: console.error("WebGL Error: INVALID_FRAMEBUFFER_OPERATION"); break;
+      case gl.OUT_OF_MEMORY: console.error("WebGL Error: OUT_OF_MEMORY"); break;
+      case gl.CONTEXT_LOST_WEBGL: console.error("WebGL Error: CONTEXT_LOST_WEBGL"); break;
+      default: console.error("WebGL Error:" + error); break;
+    }
+
+    return isNoError;
   }
 
 }

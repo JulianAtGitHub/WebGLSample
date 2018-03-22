@@ -120,6 +120,9 @@ export class Renderer {
     const vertexInfo = drawable.vertex;
 
     // set attributes
+    if (!program.CheckAttribLocation(vertexInfo.layouts)) {
+      console.error("Check drawable vertex info failed!");
+    }
     gl.bindVertexArray(vertexInfo.vao);
 
     // set textures

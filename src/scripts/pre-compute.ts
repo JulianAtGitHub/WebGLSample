@@ -189,7 +189,6 @@ export class PreCompute {
     this.rad2envProgram = new Program(this.glSystem, {
       vertFile: "assets/shaders/pre-computer/unitCube.vs",
       fragFile: "assets/shaders/pre-computer/rad2env.fs",
-      attributes: { "a_position": DataType.Float3 },
       uniforms: {
         textures: { "u_sphereMap": TextureType.Texture2D },
         others: { "u_viewProjMatrix": DataType.Float4x4 }
@@ -199,7 +198,6 @@ export class PreCompute {
     this.env2irrProgram = new Program(this.glSystem, {
       vertFile: "assets/shaders/pre-computer/unitCube.vs",
       fragFile: "assets/shaders/pre-computer/env2irr.fs",
-      attributes: { "a_position": DataType.Float3 },
       uniforms: {
         textures: { "u_envMap": TextureType.TextureCubeMap },
         others: { "u_viewProjMatrix": DataType.Float4x4 }
@@ -209,7 +207,6 @@ export class PreCompute {
     this.env2filProgram = new Program(this.glSystem, {
       vertFile: "assets/shaders/pre-computer/unitCube.vs",
       fragFile: "assets/shaders/pre-computer/env2fil.fs",
-      attributes: { "a_position": DataType.Float3 },
       uniforms: {
         textures: { "u_envMap": TextureType.TextureCubeMap },
         others: { 
@@ -223,10 +220,6 @@ export class PreCompute {
     this.brdfGenProgram = new Program(this.glSystem, {
       vertFile: "assets/shaders/pre-computer/brdf.vs",
       fragFile: "assets/shaders/pre-computer/brdf.fs",
-      attributes: { 
-        "a_position": DataType.Float3,
-        "a_texCoord": DataType.Float2 
-      },
       uniforms: { textures: { }, others: { } }
     });
 

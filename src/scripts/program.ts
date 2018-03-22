@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { DataType, TextureType } from "./model";
+import { DataType, TextureType, DataUsage, DataLayout } from "./model";
 import { GLSystem } from "./gl-system";
 
 const ErrorLocation = -1;
@@ -26,7 +26,6 @@ export interface ProgramParameters {
   vertSource?: string;
   fragSource?: string;
   macros?: string[];
-  attributes?: {[id: string]: DataType};
   uniforms?: {
     textures?: {[id: string]: TextureType};
     others?: {[id: string]: DataType};
@@ -35,7 +34,8 @@ export interface ProgramParameters {
 
 export class Program {
   private glProgram: WebGLProgram = null;
-  private attributes: {[id: string]: ShaderAttribute} = {};
+  private attribCount: number = 0;
+  private attribLocations: {[id: string]: number} = {};
   private uniforms: {[id: string]: ShaderUniform} = {};
   private samplers: {[id: string]: ShaderTexture} = {};
 
@@ -58,18 +58,6 @@ export class Program {
     }
 
     const gl = this.glSystem.context;
-
-    // get attributes
-    if (parameters.attributes) {
-      _.map(parameters.attributes, (type: DataType, attrName: string) => {
-        const attribute = gl.getAttribLocation(this.glProgram, attrName);
-        if (attribute !== ErrorLocation) {
-          this.attributes[attrName] = {location: attribute, type};
-        } else {
-          console.error("Shader program attribute: " + attrName + " not found");
-        }
-      });
-    }
 
     // get uniforms
     if (parameters.uniforms) {
@@ -99,11 +87,10 @@ export class Program {
       }
     }
 
+    this.attribCount = gl.getProgramParameter(this.glProgram, gl.ACTIVE_ATTRIBUTES);
   }
 
   public get isReady(): boolean { return (this.glProgram !== null); }
-
-  public get attributeNames(): string[] { return Object.keys(this.attributes); }
 
   public get textureNames(): string[] { return Object.keys(this.samplers); }
 
@@ -117,43 +104,6 @@ export class Program {
 
     const gl = this.glSystem.context;
     gl.useProgram(this.glProgram);
-  }
-
-  public SetAttribute(name: string, buffer: WebGLBuffer, bufferType: DataType) {
-    if (!name || !buffer) {
-      return;
-    }
-
-    const attribute = this.attributes[name];
-    if (!attribute) {
-      console.error("Attribute:" + name + " not exist in shader program");
-      return;
-    }
-
-    if (bufferType !== attribute.type) {
-      console.error("SetAttribute:" + name + " type not matched");
-      return;
-    }
-
-    const gl = this.glSystem.context;
-
-    let numComponents = 0;  // pull out 2 values per iteration
-    const type = gl.FLOAT;    // the data in the buffer is 32bit floats
-    const normalize = false;  // don't normalize
-    const stride = 0;         // how many bytes to get from one set of values to the next
-    const offset = 0;         // how many bytes inside the buffer to start from
-
-    // data type case
-    switch(attribute.type) {
-      case DataType.Float2: numComponents = 2; break;
-      case DataType.Float3: numComponents = 3; break;
-      case DataType.Float4: numComponents = 4; break;
-      default: break;
-    }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.vertexAttribPointer(attribute.location, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(attribute.location);
   }
 
   public SetTexture(name: string, texture: WebGLTexture, textureType: TextureType) {
@@ -231,5 +181,35 @@ export class Program {
       case DataType.Int: gl.uniform1i(uniform.location, value); break;
       default: console.error("Unknow uniform type:" + uniform.type); break;
     }
+  }
+
+  public CheckAttribLocation(layouts: DataLayout[]): boolean {
+    if (!layouts) {
+      return false;
+    }
+
+    if (this.attribCount > layouts.length) {
+      console.error("CheckAttribLocation: vertex attribute count less than program needed!");
+      return false;
+    }
+
+    const gl = this.glSystem.context;
+
+    for (let i = 0; i < layouts.length; ++i) {
+      const layout = layouts[i];
+      const name = "a_" + DataUsage[layout.usage];
+      let location = this.attribLocations[name];
+      if (location === null || location === undefined) {
+        location = gl.getAttribLocation(this.glProgram, name);
+        this.attribLocations[name] = location;
+      }
+
+      if (location === -1) {
+        console.error("CheckAttribLocation: attribute " + name + " not exist in program!");
+        return false;
+      }
+    }
+
+    return true;
   }
 }

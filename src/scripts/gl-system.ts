@@ -2,7 +2,7 @@ import * as $ from "jquery";
 import * as _ from "lodash";
 import { HDRImage } from "./hdrpng";
 import { vec3 } from "gl-matrix";
-import { DataType, TextureType, Data } from "./model";
+import { DataType, TextureType, DataLayout, Data } from "./model";
 
 export interface LightInfo {
   position?: vec3;
@@ -23,6 +23,7 @@ export interface VertexInfo {
   // Count is element count if ebo is exist
   // Count is vertex count if ebo is not exist
   count: number;
+  layouts: DataLayout[];
 }
 
 // return value is power of two
@@ -335,8 +336,9 @@ export class GLSystem {
     gl.bindVertexArray(null);
 
     const count = (ebo !== null ? indices.data.length : vertices.data.length / (stride / sizeOfFloat));
+    const layouts = vertices.layouts;
 
-    return {vao, vbo, ebo, count};
+    return {vao, vbo, ebo, count, layouts };
   }
 
 

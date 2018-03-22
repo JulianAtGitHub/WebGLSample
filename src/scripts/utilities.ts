@@ -8,11 +8,6 @@ export function CreatePhoneProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
     vertFile: "assets/shaders/phong.vs",
     fragFile: "assets/shaders/phong.fs",
-    attributes: {
-      "a_position": DataType.Float3,
-      "a_normal": DataType.Float3,
-      "a_texCoord": DataType.Float2
-    },
     uniforms: {
       textures: {
         "u_diffuseMap": TextureType.Texture2D
@@ -34,9 +29,6 @@ export function CreateSkyboxProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
     vertFile: "assets/shaders/skybox.vs",
     fragFile: "assets/shaders/skybox.fs",
-    attributes: {
-      "a_position": DataType.Float3
-    },
     uniforms: {
       textures: {
         "u_envMap": TextureType.TextureCubeMap
@@ -56,11 +48,6 @@ export function CreatePbrProgram(glSystem: GLSystem): Program {
     vertFile: "assets/shaders/pbr.vs",
     fragFile: "assets/shaders/pbr.fs",
     macros: ["#define HAS_PBR_TEXTURES"],
-    attributes: {
-      "a_position": DataType.Float3,
-      "a_normal": DataType.Float3,
-      "a_texCoord": DataType.Float2
-    },
     uniforms: {
       textures: {
         "u_normalMap": TextureType.Texture2D,
@@ -90,11 +77,6 @@ export function CreatePbrNoTexturedProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
     vertFile: "assets/shaders/pbr.vs",
     fragFile: "assets/shaders/pbr.fs",
-    attributes: {
-      "a_position": DataType.Float3,
-      "a_normal": DataType.Float3,
-      "a_texCoord": DataType.Float2
-    },
     uniforms: {
       textures: {
         "u_irradianceMap": TextureType.TextureCubeMap,
@@ -123,10 +105,6 @@ export function CreateDebugTexture2DProgram(glSystem: GLSystem): Program {
   const program = new Program(glSystem, {
     vertFile: "assets/shaders/debug/texture2d.vs",
     fragFile: "assets/shaders/debug/texture2d.fs",
-    attributes: {
-      "a_position": DataType.Float3,
-      "a_texCoord": DataType.Float2
-    },
     uniforms: {
       textures: { "u_texture2D": TextureType.Texture2D },
       others: { }

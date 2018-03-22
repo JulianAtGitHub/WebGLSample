@@ -29,12 +29,14 @@ export enum TextureType {
   TextureCubeMap
 }
 
+export interface DataLayout {
+  type: DataType;
+  usage: DataUsage;
+}
+
 export interface Data {
   data: number[];
-  layouts: {
-    type: DataType;
-    usage: DataUsage;
-  } [];
+  layouts: DataLayout[];
 }
 
 export interface Model {

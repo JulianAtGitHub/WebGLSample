@@ -11,9 +11,12 @@ export enum DataType {
   Float2,
   Float3,
   Float4,
+  Float2x2,
   Float3x3,
   Float4x4,
-  Int
+  Int,
+  UInt,
+  Unknown
 }
 
 export enum DataUsage {
